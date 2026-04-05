@@ -7,7 +7,7 @@ DEFAULTS = {
     "hold_key": "caps_lock",
     "debounce_ms": 300,
     "vad_aggressiveness": 3,
-    "trailing_silence_ms": 90,
+    "trailing_silence_ms": 120,
 }
 
 VALID_MODES = {"toggle", "hold"}

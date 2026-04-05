@@ -25,6 +25,19 @@ WORD_TO_DIGIT = {
 GRAMMAR = json.dumps(list(WORD_TO_DIGIT.keys()) + ["[unk]"])
 
 
+def extract_digits(text):
+    """Extract recognized digit words from text.
+
+    Returns list of (word, digit) tuples.
+    """
+    words = re.findall(r'[a-z]+', text.lower())
+    results = []
+    for word in words:
+        if word in WORD_TO_DIGIT:
+            results.append((word, WORD_TO_DIGIT[word]))
+    return results
+
+
 class DigitDebouncer:
     """Per-digit debounce to prevent double-fires."""
 
@@ -116,9 +129,6 @@ class VoiceListener:
                 text = result.get("text", "").strip()
 
                 if text:
-                    words = re.findall(r'[a-z]+', text.lower())
-                    for word in words:
-                        if word in WORD_TO_DIGIT:
-                            digit = WORD_TO_DIGIT[word]
-                            if self._debouncer.should_fire(digit):
-                                self.on_digit(digit, word)
+                    for word, digit in extract_digits(text):
+                        if self._debouncer.should_fire(digit):
+                            self.on_digit(digit, word)
