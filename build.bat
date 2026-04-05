@@ -2,15 +2,10 @@
 echo === Building Blob Voice Observer ===
 echo.
 
-if not exist "models\faster-whisper-tiny" (
-    echo Downloading faster-whisper tiny model...
-    venv\Scripts\python -c "from huggingface_hub import snapshot_download; snapshot_download('Systran/faster-whisper-tiny', local_dir='./models/faster-whisper-tiny')"
-    if not exist "models\faster-whisper-tiny" (
-        echo ERROR: Model download failed.
-        exit /b 1
-    )
-    echo Model downloaded.
-    echo.
+if not exist "vosk-model-small-en-us-0.15" (
+    echo ERROR: Vosk model not found. Download it first:
+    echo   python -c "import urllib.request,zipfile,os; urllib.request.urlretrieve('https://alphacephei.com/vosk/models/vosk-model-small-en-us-0.15.zip','model.zip'); zipfile.ZipFile('model.zip','r').extractall('.'); os.remove('model.zip')"
+    exit /b 1
 )
 
 echo Running PyInstaller...
@@ -18,10 +13,8 @@ venv\Scripts\pyinstaller ^
     --noconfirm ^
     --onedir ^
     --name BlobVoiceObserver ^
-    --add-data "models\faster-whisper-tiny;models\faster-whisper-tiny" ^
-    --collect-all faster_whisper ^
-    --collect-all ctranslate2 ^
-    --collect-all tokenizers ^
+    --add-data "vosk-model-small-en-us-0.15;vosk-model-small-en-us-0.15" ^
+    --collect-all vosk ^
     --collect-all webrtcvad ^
     --hidden-import pyaudio ^
     --hidden-import keyboard ^
