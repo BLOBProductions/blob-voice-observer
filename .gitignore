@@ -1,0 +1,9 @@
+__pycache__/
+*.pyc
+venv/
+.venv/
+vosk-model-small-en-us-0.15/
+dist/
+build/
+*.spec
+*.egg-info/
