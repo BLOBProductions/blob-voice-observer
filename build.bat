@@ -8,6 +8,15 @@ if not exist "vosk-model-small-en-us-0.15" (
     exit /b 1
 )
 
+REM Remove broken PyInstaller contrib hook for webrtcvad.
+REM It calls copy_metadata('webrtcvad') but we use webrtcvad-wheels which
+REM registers under a different metadata name. Without this hook, PyInstaller
+REM still finds webrtcvad.py and _webrtcvad.pyd through --hidden-import.
+for /f "delims=" %%F in ('dir /s /b venv\Lib\site-packages\_pyinstaller_hooks_contrib\stdhooks\hook-webrtcvad.py 2^>nul') do (
+    del "%%F"
+    echo Removed broken hook: %%F
+)
+
 echo Running PyInstaller...
 venv\Scripts\pyinstaller ^
     --noconfirm ^
@@ -19,7 +28,6 @@ venv\Scripts\pyinstaller ^
     --hidden-import _webrtcvad ^
     --hidden-import pyaudio ^
     --hidden-import keyboard ^
-    --exclude-module hook-webrtcvad ^
     src\main.py
 
 echo.
