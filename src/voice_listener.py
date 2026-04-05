@@ -77,8 +77,7 @@ class VoiceListener:
 
     def _listen_loop(self):
         recognizer = KaldiRecognizer(self.model, SAMPLE_RATE, GRAMMAR)
-        fired_in_utterance = set()  # words already fired in this utterance
-        last_word_seen = None
+        last_word = None
         while not self._stop_event.is_set():
             try:
                 data = self._stream.read(CHUNK_SIZE, exception_on_overflow=False)
@@ -87,30 +86,20 @@ class VoiceListener:
                     print("WARNING: Microphone disconnected. Toggle off and on to resume.")
                 break
 
-            is_final = recognizer.AcceptWaveform(data)
-
-            if is_final:
-                # Utterance complete — reset for next
-                fired_in_utterance = set()
-                last_word_seen = None
+            if recognizer.AcceptWaveform(data):
+                last_word = None
             else:
                 partial = json.loads(recognizer.PartialResult())
                 partial_text = partial.get("partial", "").strip()
                 if not partial_text:
                     continue
 
-                # Extract the last word — Vosk accumulates: "five" → "five three"
-                words = partial_text.split()
-                last_word = words[-1]
-
-                if (last_word in WORD_TO_DIGIT
-                        and last_word != last_word_seen
-                        and last_word not in fired_in_utterance):
-                    last_word_seen = last_word
-                    fired_in_utterance.add(last_word)
-                    recognition = self.process_recognition(last_word)
+                word = partial_text.split()[-1]
+                if word != last_word and word in WORD_TO_DIGIT:
+                    last_word = word
+                    recognition = self.process_recognition(word)
                     if recognition:
-                        digit, word = recognition
-                        self.on_digit(digit, word)
-                elif last_word != last_word_seen:
-                    last_word_seen = last_word
+                        digit, w = recognition
+                        self.on_digit(digit, w)
+                else:
+                    last_word = word
