@@ -8,3 +8,5 @@ build/
 *.spec
 *.egg-info/
 .pytest_cache/
+models/
+BlobVoiceObserver.zip
