@@ -82,7 +82,7 @@ class VoiceListener:
         self._transcribe_thread = None
         self._audio = None
         self._stream = None
-        self._segment_queue = queue.Queue()
+        self._segment_queue = queue.Queue(maxsize=5)
 
     @staticmethod
     def _load_model(model_path):
@@ -111,6 +111,13 @@ class VoiceListener:
         if not self._stop_event.is_set():
             return  # already running
         self._stop_event.clear()
+        # Clear stale segments and debounce state from previous session
+        while not self._segment_queue.empty():
+            try:
+                self._segment_queue.get_nowait()
+            except queue.Empty:
+                break
+        self._debouncer._last_per_digit.clear()
         self._audio = pyaudio.PyAudio()
         self._stream = self._audio.open(
             format=pyaudio.paInt16,
@@ -126,6 +133,16 @@ class VoiceListener:
 
     def stop(self):
         self._stop_event.set()
+        # Join threads BEFORE closing stream. The listen thread checks
+        # _stop_event after each 30ms read and exits cleanly. If we close
+        # the stream first, the thread's next read() hits a closed/None
+        # stream, printing a false "Microphone disconnected" warning.
+        if self._listen_thread:
+            self._listen_thread.join(timeout=2)
+            self._listen_thread = None
+        if self._transcribe_thread:
+            self._transcribe_thread.join(timeout=2)
+            self._transcribe_thread = None
         if self._stream:
             self._stream.stop_stream()
             self._stream.close()
@@ -133,12 +150,6 @@ class VoiceListener:
         if self._audio:
             self._audio.terminate()
             self._audio = None
-        if self._listen_thread:
-            self._listen_thread.join(timeout=2)
-            self._listen_thread = None
-        if self._transcribe_thread:
-            self._transcribe_thread.join(timeout=2)
-            self._transcribe_thread = None
 
     def _listen_loop(self):
         """Read mic frames and feed to VAD. Never blocks on transcription."""
@@ -158,7 +169,10 @@ class VoiceListener:
 
             speech_audio = detector.process_frame(data)
             if speech_audio is not None:
-                self._segment_queue.put(speech_audio)
+                try:
+                    self._segment_queue.put_nowait(speech_audio)
+                except queue.Full:
+                    pass  # drop segment — transcriber is behind
 
     def _transcribe_loop(self):
         """Consume speech segments from queue and transcribe."""
@@ -167,7 +181,10 @@ class VoiceListener:
                 audio_bytes = self._segment_queue.get(timeout=0.1)
             except queue.Empty:
                 continue
-            self._transcribe(audio_bytes)
+            try:
+                self._transcribe(audio_bytes)
+            except Exception as e:
+                print(f"WARNING: Transcription loop error: {e}")
 
     def _transcribe(self, audio_bytes):
         audio = np.frombuffer(audio_bytes, dtype=np.int16).astype(np.float32) / 32768.0

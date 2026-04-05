@@ -56,11 +56,14 @@ def load_config(config_path="config.json"):
 
     if "trailing_silence_ms" in user_config:
         val = user_config["trailing_silence_ms"]
-        if isinstance(val, (int, float)) and val >= 30:
+        if isinstance(val, (int, float)) and 30 <= val <= 2000:
             config["trailing_silence_ms"] = int(val)
         elif isinstance(val, (int, float)) and 0 < val < 30:
             config["trailing_silence_ms"] = 30
             print(f"WARNING: trailing_silence_ms {val} below minimum, clamped to 30")
+        elif isinstance(val, (int, float)) and val > 2000:
+            config["trailing_silence_ms"] = 2000
+            print(f"WARNING: trailing_silence_ms {val} above maximum, clamped to 2000")
         else:
             print(f"WARNING: Invalid trailing_silence_ms '{val}', using default {DEFAULTS['trailing_silence_ms']}")
 

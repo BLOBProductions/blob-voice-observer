@@ -22,7 +22,7 @@ venv\Scripts\pyinstaller ^
     --collect-all faster_whisper ^
     --collect-all ctranslate2 ^
     --collect-all tokenizers ^
-    --hidden-import webrtcvad ^
+    --collect-all webrtcvad ^
     --hidden-import pyaudio ^
     --hidden-import keyboard ^
     src\main.py
