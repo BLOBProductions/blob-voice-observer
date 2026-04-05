@@ -17,8 +17,12 @@ def load_config(config_path="config.json"):
         print(f"Created default config at {config_path}")
         return dict(DEFAULTS)
 
-    with open(config_path, "r") as f:
-        user_config = json.load(f)
+    try:
+        with open(config_path, "r") as f:
+            user_config = json.load(f)
+    except json.JSONDecodeError:
+        print(f"WARNING: Config file at {config_path} is not valid JSON, using defaults")
+        return dict(DEFAULTS)
 
     config = dict(DEFAULTS)
 

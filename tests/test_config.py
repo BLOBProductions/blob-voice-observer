@@ -1,5 +1,5 @@
 import json
-import os
+
 from config import load_config, DEFAULTS
 
 
@@ -55,3 +55,10 @@ def test_missing_fields_use_defaults(tmp_path):
     assert config["toggle_key"] == DEFAULTS["toggle_key"]
     assert config["hold_key"] == DEFAULTS["hold_key"]
     assert config["debounce_ms"] == DEFAULTS["debounce_ms"]
+
+
+def test_malformed_json_falls_back_to_defaults(tmp_path):
+    config_path = tmp_path / "config.json"
+    config_path.write_text("{bad json,,,}")
+    config = load_config(str(config_path))
+    assert config == DEFAULTS
