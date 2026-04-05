@@ -19,7 +19,7 @@ WORD_TO_DIGIT = {
 
 GRAMMAR = json.dumps(list(WORD_TO_DIGIT.keys()) + ["[unk]"])
 SAMPLE_RATE = 16000
-CHUNK_SIZE = 4000
+CHUNK_SIZE = 2000  # ~125ms chunks for faster response
 
 
 class VoiceListener:
@@ -27,9 +27,10 @@ class VoiceListener:
         self.model = Model(model_path)
         self.on_digit = on_digit
         self.debounce_ms = debounce_ms
-        self._last_recognition_time = 0
+        self._last_per_digit = {}  # per-digit debounce timestamps
+        self._last_partial = None  # track last partial to avoid re-firing
         self._stop_event = threading.Event()
-        self._stop_event.set()  # starts in stopped state
+        self._stop_event.set()
         self._thread = None
         self._audio = None
         self._stream = None
@@ -64,16 +65,20 @@ class VoiceListener:
         if text not in WORD_TO_DIGIT:
             return None
 
+        digit = WORD_TO_DIGIT[text]
         now = time.time() * 1000
-        if now - self._last_recognition_time < self.debounce_ms:
+
+        # Only debounce the SAME digit — different digits pass through immediately
+        last_time = self._last_per_digit.get(digit, 0)
+        if now - last_time < self.debounce_ms:
             return None
 
-        self._last_recognition_time = now
-        digit = WORD_TO_DIGIT[text]
+        self._last_per_digit[digit] = now
         return (digit, text)
 
     def _listen_loop(self):
         recognizer = KaldiRecognizer(self.model, SAMPLE_RATE, GRAMMAR)
+        self._last_partial = None
         while not self._stop_event.is_set():
             try:
                 data = self._stream.read(CHUNK_SIZE, exception_on_overflow=False)
@@ -82,10 +87,15 @@ class VoiceListener:
                     print("WARNING: Microphone disconnected. Toggle off and on to resume.")
                 break
 
-            if recognizer.AcceptWaveform(data):
-                result = json.loads(recognizer.Result())
-                text = result.get("text", "")
-                recognition = self.process_recognition(text)
+            # Check partial results first for near-realtime response
+            partial = json.loads(recognizer.PartialResult())
+            partial_text = partial.get("partial", "").strip()
+            if partial_text and partial_text != self._last_partial and partial_text in WORD_TO_DIGIT:
+                self._last_partial = partial_text
+                recognition = self.process_recognition(partial_text)
                 if recognition:
                     digit, word = recognition
                     self.on_digit(digit, word)
+
+            if recognizer.AcceptWaveform(data):
+                self._last_partial = None  # reset for next utterance
