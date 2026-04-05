@@ -15,9 +15,11 @@ venv\Scripts\pyinstaller ^
     --name BlobVoiceObserver ^
     --add-data "vosk-model-small-en-us-0.15;vosk-model-small-en-us-0.15" ^
     --collect-all vosk ^
-    --collect-all webrtcvad ^
+    --hidden-import webrtcvad ^
+    --hidden-import _webrtcvad ^
     --hidden-import pyaudio ^
     --hidden-import keyboard ^
+    --exclude-module hook-webrtcvad ^
     src\main.py
 
 echo.
