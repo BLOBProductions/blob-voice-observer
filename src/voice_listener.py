@@ -79,6 +79,7 @@ class VoiceListener:
     def _listen_loop(self):
         recognizer = KaldiRecognizer(self.model, SAMPLE_RATE, GRAMMAR)
         self._last_partial = None
+        self._partial_fired = False  # track if we already fired for this utterance
         while not self._stop_event.is_set():
             try:
                 data = self._stream.read(CHUNK_SIZE, exception_on_overflow=False)
@@ -87,15 +88,24 @@ class VoiceListener:
                     print("WARNING: Microphone disconnected. Toggle off and on to resume.")
                 break
 
-            # Check partial results first for near-realtime response
-            partial = json.loads(recognizer.PartialResult())
-            partial_text = partial.get("partial", "").strip()
-            if partial_text and partial_text != self._last_partial and partial_text in WORD_TO_DIGIT:
-                self._last_partial = partial_text
-                recognition = self.process_recognition(partial_text)
-                if recognition:
-                    digit, word = recognition
-                    self.on_digit(digit, word)
+            # Feed audio to recognizer first
+            is_final = recognizer.AcceptWaveform(data)
 
-            if recognizer.AcceptWaveform(data):
-                self._last_partial = None  # reset for next utterance
+            if is_final:
+                # Utterance complete — reset for next word
+                self._last_partial = None
+                self._partial_fired = False
+            else:
+                # Check partial results for near-realtime response
+                partial = json.loads(recognizer.PartialResult())
+                partial_text = partial.get("partial", "").strip()
+                if (partial_text
+                        and partial_text != self._last_partial
+                        and partial_text in WORD_TO_DIGIT
+                        and not self._partial_fired):
+                    self._last_partial = partial_text
+                    self._partial_fired = True
+                    recognition = self.process_recognition(partial_text)
+                    if recognition:
+                        digit, word = recognition
+                        self.on_digit(digit, word)
