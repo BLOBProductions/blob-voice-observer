@@ -6,6 +6,8 @@ DEFAULTS = {
     "toggle_key": "F6",
     "hold_key": "caps_lock",
     "debounce_ms": 300,
+    "vad_aggressiveness": 3,
+    "trailing_silence_ms": 120,
 }
 
 VALID_MODES = {"toggle", "hold"}
@@ -44,6 +46,23 @@ def load_config(config_path="config.json"):
             config["debounce_ms"] = int(user_config["debounce_ms"])
         else:
             print(f"WARNING: Invalid debounce_ms, using default {DEFAULTS['debounce_ms']}")
+
+    if "vad_aggressiveness" in user_config:
+        val = user_config["vad_aggressiveness"]
+        if isinstance(val, int) and 0 <= val <= 3:
+            config["vad_aggressiveness"] = val
+        else:
+            print(f"WARNING: Invalid vad_aggressiveness '{val}', using default {DEFAULTS['vad_aggressiveness']}")
+
+    if "trailing_silence_ms" in user_config:
+        val = user_config["trailing_silence_ms"]
+        if isinstance(val, (int, float)) and val >= 30:
+            config["trailing_silence_ms"] = int(val)
+        elif isinstance(val, (int, float)) and 0 < val < 30:
+            config["trailing_silence_ms"] = 30
+            print(f"WARNING: trailing_silence_ms {val} below minimum, clamped to 30")
+        else:
+            print(f"WARNING: Invalid trailing_silence_ms '{val}', using default {DEFAULTS['trailing_silence_ms']}")
 
     return config
 

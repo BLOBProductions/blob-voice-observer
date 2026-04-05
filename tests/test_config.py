@@ -19,7 +19,9 @@ def test_valid_config_loaded(tmp_path):
         "mode": "hold",
         "toggle_key": "F5",
         "hold_key": "space",
-        "debounce_ms": 500
+        "debounce_ms": 500,
+        "vad_aggressiveness": 3,
+        "trailing_silence_ms": 120,
     }
     config_path.write_text(json.dumps(custom))
     config = load_config(str(config_path))
@@ -62,3 +64,50 @@ def test_malformed_json_falls_back_to_defaults(tmp_path):
     config_path.write_text("{bad json,,,}")
     config = load_config(str(config_path))
     assert config == DEFAULTS
+
+
+def test_default_vad_aggressiveness(tmp_path):
+    config_path = tmp_path / "config.json"
+    config = load_config(str(config_path))
+    assert config["vad_aggressiveness"] == 3
+
+
+def test_default_trailing_silence_ms(tmp_path):
+    config_path = tmp_path / "config.json"
+    config = load_config(str(config_path))
+    assert config["trailing_silence_ms"] == 120
+
+
+def test_custom_vad_aggressiveness(tmp_path):
+    config_path = tmp_path / "config.json"
+    config_path.write_text(json.dumps({"vad_aggressiveness": 2}))
+    config = load_config(str(config_path))
+    assert config["vad_aggressiveness"] == 2
+
+
+def test_custom_trailing_silence_ms(tmp_path):
+    config_path = tmp_path / "config.json"
+    config_path.write_text(json.dumps({"trailing_silence_ms": 150}))
+    config = load_config(str(config_path))
+    assert config["trailing_silence_ms"] == 150
+
+
+def test_invalid_vad_aggressiveness_falls_back(tmp_path):
+    config_path = tmp_path / "config.json"
+    config_path.write_text(json.dumps({"vad_aggressiveness": 5}))
+    config = load_config(str(config_path))
+    assert config["vad_aggressiveness"] == 3
+
+
+def test_invalid_trailing_silence_below_minimum(tmp_path):
+    config_path = tmp_path / "config.json"
+    config_path.write_text(json.dumps({"trailing_silence_ms": 10}))
+    config = load_config(str(config_path))
+    assert config["trailing_silence_ms"] == 30
+
+
+def test_negative_trailing_silence_falls_back(tmp_path):
+    config_path = tmp_path / "config.json"
+    config_path.write_text(json.dumps({"trailing_silence_ms": -50}))
+    config = load_config(str(config_path))
+    assert config["trailing_silence_ms"] == 120
