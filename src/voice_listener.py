@@ -1,0 +1,89 @@
+import json
+import time
+import threading
+from vosk import Model, KaldiRecognizer
+import pyaudio
+
+WORD_TO_DIGIT = {
+    "zero": 0,
+    "one": 1,
+    "two": 2,
+    "three": 3,
+    "four": 4,
+    "five": 5,
+    "six": 6,
+    "seven": 7,
+    "eight": 8,
+    "nine": 9,
+}
+
+GRAMMAR = json.dumps(list(WORD_TO_DIGIT.keys()) + ["[unk]"])
+SAMPLE_RATE = 16000
+CHUNK_SIZE = 4000
+
+
+class VoiceListener:
+    def __init__(self, model_path, on_digit, debounce_ms=300):
+        self.model = Model(model_path)
+        self.on_digit = on_digit
+        self.debounce_ms = debounce_ms
+        self._last_recognition_time = 0
+        self._running = False
+        self._thread = None
+        self._audio = None
+        self._stream = None
+
+    def start(self):
+        if self._running:
+            return
+        self._running = True
+        self._audio = pyaudio.PyAudio()
+        self._stream = self._audio.open(
+            format=pyaudio.paInt16,
+            channels=1,
+            rate=SAMPLE_RATE,
+            input=True,
+            frames_per_buffer=CHUNK_SIZE,
+        )
+        self._thread = threading.Thread(target=self._listen_loop, daemon=True)
+        self._thread.start()
+
+    def stop(self):
+        self._running = False
+        if self._stream:
+            self._stream.stop_stream()
+            self._stream.close()
+            self._stream = None
+        if self._audio:
+            self._audio.terminate()
+            self._audio = None
+
+    def process_recognition(self, text):
+        text = text.strip()
+        if text not in WORD_TO_DIGIT:
+            return None
+
+        now = time.time() * 1000
+        if now - self._last_recognition_time < self.debounce_ms:
+            return None
+
+        self._last_recognition_time = now
+        digit = WORD_TO_DIGIT[text]
+        return (digit, text)
+
+    def _listen_loop(self):
+        recognizer = KaldiRecognizer(self.model, SAMPLE_RATE, GRAMMAR)
+        while self._running:
+            try:
+                data = self._stream.read(CHUNK_SIZE, exception_on_overflow=False)
+            except Exception:
+                print("WARNING: Microphone disconnected. Toggle off and on to resume.")
+                break
+
+            if recognizer.AcceptWaveform(data):
+                result = json.loads(recognizer.Result())
+                text = result.get("text", "")
+                recognition = self.process_recognition(text)
+                if recognition:
+                    digit, word = recognition
+                    self.on_digit(digit, word)
