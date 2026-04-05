@@ -1,8 +1,5 @@
-import json
+import re
 import time
-import threading
-from vosk import Model, KaldiRecognizer
-import pyaudio
 
 WORD_TO_DIGIT = {
     "zero": 0,
@@ -17,86 +14,45 @@ WORD_TO_DIGIT = {
     "nine": 9,
 }
 
-GRAMMAR = json.dumps(list(WORD_TO_DIGIT.keys()) + ["[unk]"])
-SAMPLE_RATE = 16000
-CHUNK_SIZE = 1000  # ~62ms chunks for faster endpoint detection
+INITIAL_PROMPT = "zero one two three four five six seven eight nine"
+
+NO_SPEECH_PROB_THRESHOLD = 0.6
+AVG_LOGPROB_THRESHOLD = -1.0
 
 
-class VoiceListener:
-    def __init__(self, model_path, on_digit, debounce_ms=300):
-        self.model = Model(model_path)
-        self.on_digit = on_digit
+def extract_digits(text):
+    """Extract recognized digit words from Whisper output text.
+
+    Returns list of (word, digit) tuples.
+    """
+    words = re.findall(r'[a-z]+', text.lower())
+    results = []
+    for word in words:
+        if word in WORD_TO_DIGIT:
+            results.append((word, WORD_TO_DIGIT[word]))
+    return results
+
+
+def passes_hallucination_filter(no_speech_prob, avg_logprob):
+    """Check if a Whisper segment passes confidence thresholds."""
+    if no_speech_prob > NO_SPEECH_PROB_THRESHOLD:
+        return False
+    if avg_logprob < AVG_LOGPROB_THRESHOLD:
+        return False
+    return True
+
+
+class DigitDebouncer:
+    """Per-digit debounce to prevent double-fires."""
+
+    def __init__(self, debounce_ms=300):
         self.debounce_ms = debounce_ms
         self._last_per_digit = {}
-        self._stop_event = threading.Event()
-        self._stop_event.set()
-        self._thread = None
-        self._audio = None
-        self._stream = None
 
-    def start(self):
-        if not self._stop_event.is_set():
-            return  # already running
-        self._stop_event.clear()
-        self._audio = pyaudio.PyAudio()
-        self._stream = self._audio.open(
-            format=pyaudio.paInt16,
-            channels=1,
-            rate=SAMPLE_RATE,
-            input=True,
-            frames_per_buffer=CHUNK_SIZE,
-        )
-        self._thread = threading.Thread(target=self._listen_loop, daemon=True)
-        self._thread.start()
-
-    def stop(self):
-        self._stop_event.set()
-        if self._stream:
-            self._stream.stop_stream()
-            self._stream.close()
-            self._stream = None
-        if self._audio:
-            self._audio.terminate()
-            self._audio = None
-
-    def process_recognition(self, text):
-        text = text.strip()
-        if text not in WORD_TO_DIGIT:
-            return None
-
-        digit = WORD_TO_DIGIT[text]
+    def should_fire(self, digit):
         now = time.time() * 1000
-
-        # Only debounce the SAME digit — different digits pass through immediately
         last_time = self._last_per_digit.get(digit, 0)
         if now - last_time < self.debounce_ms:
-            return None
-
+            return False
         self._last_per_digit[digit] = now
-        return (digit, text)
-
-    def _listen_loop(self):
-        recognizer = KaldiRecognizer(self.model, SAMPLE_RATE, GRAMMAR)
-        recognizer.SetMaxAlternatives(0)
-        recognizer.SetWords(False)
-
-        while not self._stop_event.is_set():
-            try:
-                data = self._stream.read(CHUNK_SIZE, exception_on_overflow=False)
-            except Exception:
-                if not self._stop_event.is_set():
-                    print("WARNING: Microphone disconnected. Toggle off and on to resume.")
-                break
-
-            if recognizer.AcceptWaveform(data):
-                result = json.loads(recognizer.Result())
-                text = result.get("text", "").strip()
-                if not text:
-                    continue
-                # Fire every digit word in the final result
-                for word in text.split():
-                    if word in WORD_TO_DIGIT:
-                        recognition = self.process_recognition(word)
-                        if recognition:
-                            digit, w = recognition
-                            self.on_digit(digit, w)
+        return True
