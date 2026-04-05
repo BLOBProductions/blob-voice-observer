@@ -1,12 +1,6 @@
 import time
 
 
-WORD_TO_DIGIT = {
-    "zero": 0, "one": 1, "two": 2, "three": 3, "four": 4,
-    "five": 5, "six": 6, "seven": 7, "eight": 8, "nine": 9,
-}
-
-
 def test_extract_digits_from_clean_text():
     from voice_listener_vosk import extract_digits
     assert extract_digits("five") == [("five", 5)]
@@ -34,7 +28,7 @@ def test_extract_digits_mixed_known_unknown():
     assert result == [("nine", 9)]
 
 
-def test_extract_digits_whisper_artifacts():
+def test_extract_digits_strips_whitespace_and_punctuation():
     from voice_listener_vosk import extract_digits
     result = extract_digits(" Five! ")
     assert result == [("five", 5)]
