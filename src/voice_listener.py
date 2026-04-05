@@ -69,18 +69,7 @@ class DigitDebouncer:
 class VoiceListener:
     def __init__(self, model_path, on_digit, debounce_ms=300,
                  vad_aggressiveness=3, trailing_silence_ms=120):
-        try:
-            self.model = WhisperModel(
-                model_path, device="cuda", compute_type="float16"
-            )
-        except Exception:
-            self.model = WhisperModel(
-                model_path, device="cpu", compute_type="int8"
-            )
-
-        # Warmup — prime CTranslate2 caches, discard result without filtering
-        dummy = np.zeros(SAMPLE_RATE, dtype=np.float32)
-        list(self.model.transcribe(dummy, language="en", beam_size=1))
+        self.model = self._load_model(model_path)
 
         self.on_digit = on_digit
         self.vad_aggressiveness = vad_aggressiveness
@@ -91,6 +80,20 @@ class VoiceListener:
         self._thread = None
         self._audio = None
         self._stream = None
+
+    @staticmethod
+    def _load_model(model_path):
+        """Load model with CUDA→CPU fallback. Warmup forces full initialization."""
+        dummy = np.zeros(SAMPLE_RATE, dtype=np.float32)
+        try:
+            model = WhisperModel(model_path, device="cuda", compute_type="float16")
+            # Force CUDA to fully initialize — cublas etc. are lazy-loaded
+            list(model.transcribe(dummy, language="en", beam_size=1))
+            return model
+        except Exception:
+            model = WhisperModel(model_path, device="cpu", compute_type="int8")
+            list(model.transcribe(dummy, language="en", beam_size=1))
+            return model
 
     def start(self):
         if not self._stop_event.is_set():
