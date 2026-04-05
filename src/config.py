@@ -1,0 +1,50 @@
+import json
+import os
+
+DEFAULTS = {
+    "mode": "toggle",
+    "toggle_key": "F6",
+    "hold_key": "caps_lock",
+    "debounce_ms": 300,
+}
+
+VALID_MODES = {"toggle", "hold"}
+
+
+def load_config(config_path="config.json"):
+    if not os.path.exists(config_path):
+        _save_config(DEFAULTS, config_path)
+        print(f"Created default config at {config_path}")
+        return dict(DEFAULTS)
+
+    with open(config_path, "r") as f:
+        user_config = json.load(f)
+
+    config = dict(DEFAULTS)
+
+    if "mode" in user_config:
+        if user_config["mode"] in VALID_MODES:
+            config["mode"] = user_config["mode"]
+        else:
+            print(f"WARNING: Invalid mode '{user_config['mode']}', using default '{DEFAULTS['mode']}'")
+
+    for key in ("toggle_key", "hold_key"):
+        if key in user_config:
+            if isinstance(user_config[key], str) and user_config[key]:
+                config[key] = user_config[key]
+            else:
+                print(f"WARNING: Invalid {key}, using default '{DEFAULTS[key]}'")
+
+    if "debounce_ms" in user_config:
+        if isinstance(user_config["debounce_ms"], (int, float)) and user_config["debounce_ms"] >= 0:
+            config["debounce_ms"] = int(user_config["debounce_ms"])
+        else:
+            print(f"WARNING: Invalid debounce_ms, using default {DEFAULTS['debounce_ms']}")
+
+    return config
+
+
+def _save_config(config, config_path):
+    os.makedirs(os.path.dirname(config_path) or ".", exist_ok=True)
+    with open(config_path, "w") as f:
+        json.dump(config, f, indent=2)
