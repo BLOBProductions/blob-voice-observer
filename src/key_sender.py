@@ -30,7 +30,10 @@ class KEYBDINPUT(ctypes.Structure):
 
 class INPUT(ctypes.Structure):
     class _INPUT(ctypes.Union):
-        _fields_ = [("ki", KEYBDINPUT)]
+        _fields_ = [
+            ("ki", KEYBDINPUT),
+            ("_pad", ctypes.c_byte * 32),
+        ]
 
     _fields_ = [
         ("type", wintypes.DWORD),
@@ -54,7 +57,6 @@ def send_key(digit):
     key_up._input.ki.wVk = vk
     key_up._input.ki.dwFlags = KEYEVENTF_KEYUP
 
-    ctypes.windll.user32.SendInput(1, ctypes.byref(key_down), ctypes.sizeof(INPUT))
-    ctypes.windll.user32.SendInput(1, ctypes.byref(key_up), ctypes.sizeof(INPUT))
-
-    return True
+    inputs = (INPUT * 2)(key_down, key_up)
+    result = ctypes.windll.user32.SendInput(2, inputs, ctypes.sizeof(INPUT))
+    return result > 0

@@ -16,9 +16,8 @@ def test_vk_codes_values_are_correct():
 
 def test_send_key_valid_digit_returns_true():
     with patch("key_sender.ctypes") as mock_ctypes:
-        mock_ctypes.windll.user32.SendInput = MagicMock(return_value=1)
+        mock_ctypes.windll.user32.SendInput = MagicMock(return_value=2)
         mock_ctypes.sizeof = MagicMock(return_value=40)
-        mock_ctypes.byref = MagicMock()
         assert send_key(5) is True
 
 
@@ -27,10 +26,16 @@ def test_send_key_invalid_digit_returns_false():
     assert send_key(-1) is False
 
 
-def test_send_key_calls_sendinput_twice():
+def test_send_key_calls_sendinput_once_with_two_inputs():
     with patch("key_sender.ctypes") as mock_ctypes:
-        mock_ctypes.windll.user32.SendInput = MagicMock(return_value=1)
+        mock_ctypes.windll.user32.SendInput = MagicMock(return_value=2)
         mock_ctypes.sizeof = MagicMock(return_value=40)
-        mock_ctypes.byref = MagicMock()
         send_key(3)
-        assert mock_ctypes.windll.user32.SendInput.call_count == 2
+        mock_ctypes.windll.user32.SendInput.assert_called_once()
+
+
+def test_send_key_returns_false_when_sendinput_fails():
+    with patch("key_sender.ctypes") as mock_ctypes:
+        mock_ctypes.windll.user32.SendInput = MagicMock(return_value=0)
+        mock_ctypes.sizeof = MagicMock(return_value=40)
+        assert send_key(5) is False
