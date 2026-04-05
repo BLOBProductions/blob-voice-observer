@@ -22,16 +22,16 @@ def get_model_path():
 def check_microphone():
     try:
         audio = pyaudio.PyAudio()
-        has_input = False
+    except Exception:
+        return False
+    try:
         for i in range(audio.get_device_count()):
             info = audio.get_device_info_by_index(i)
             if info["maxInputChannels"] > 0:
-                has_input = True
-                break
-        audio.terminate()
-        return has_input
-    except Exception:
+                return True
         return False
+    finally:
+        audio.terminate()
 
 
 def main():
