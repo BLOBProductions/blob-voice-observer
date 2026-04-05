@@ -106,9 +106,8 @@ class VoiceListener:
             segments, _info = model.transcribe(dummy, **warmup_kwargs)
             for _ in segments:
                 pass
-            print("Device: CPU")
-            print("  Tip: Install CUDA Toolkit 12.x for ~10x faster inference")
-            print("  https://developer.nvidia.com/cuda-downloads")
+            print("Device: CPU (slower, digits may queue during rapid speech)")
+            print("  Tip: For GPU acceleration, run: pip install nvidia-cublas-cu12")
             return model
 
     def start(self):
