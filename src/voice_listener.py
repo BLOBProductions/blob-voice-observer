@@ -77,9 +77,11 @@ class VoiceListener:
 
     def _listen_loop(self):
         recognizer = KaldiRecognizer(self.model, SAMPLE_RATE, GRAMMAR)
-        # Set Vosk to finalize faster after each word
         recognizer.SetMaxAlternatives(0)
         recognizer.SetWords(False)
+        # Aggressive endpointer: finalize after 0.15s of silence instead of default ~0.8s
+        recognizer.SetEndpointerMode(2)           # short utterance mode
+        recognizer.SetEndpointerDelays(5.0, 0.15, 30.0)  # (start_max, trailing_silence, max_duration)
 
         while not self._stop_event.is_set():
             try:
