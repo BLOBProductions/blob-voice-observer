@@ -77,7 +77,9 @@ class VoiceListener:
 
     def _listen_loop(self):
         recognizer = KaldiRecognizer(self.model, SAMPLE_RATE, GRAMMAR)
-        last_word = None
+        prev_digits = []  # digit words from previous chunk's partial
+        fired_count = 0   # how many positions we've already fired
+
         while not self._stop_event.is_set():
             try:
                 data = self._stream.read(CHUNK_SIZE, exception_on_overflow=False)
@@ -87,19 +89,35 @@ class VoiceListener:
                 break
 
             if recognizer.AcceptWaveform(data):
-                last_word = None
+                prev_digits = []
+                fired_count = 0
             else:
                 partial = json.loads(recognizer.PartialResult())
                 partial_text = partial.get("partial", "").strip()
                 if not partial_text:
                     continue
 
-                word = partial_text.split()[-1]
-                if word != last_word and word in WORD_TO_DIGIT:
-                    last_word = word
-                    recognition = self.process_recognition(word)
+                # Extract digit words only, preserving order
+                digits = [w for w in partial_text.split() if w in WORD_TO_DIGIT]
+
+                # Count how many positions are stable (same word, same position, 2 chunks)
+                stable = 0
+                for i in range(min(len(prev_digits), len(digits))):
+                    if prev_digits[i] == digits[i]:
+                        stable = i + 1
+                    else:
+                        break
+
+                # If Vosk rewrote words we already fired, adjust
+                if stable < fired_count:
+                    fired_count = stable
+
+                # Fire any newly confirmed words
+                for i in range(fired_count, stable):
+                    recognition = self.process_recognition(digits[i])
                     if recognition:
-                        digit, w = recognition
-                        self.on_digit(digit, w)
-                else:
-                    last_word = word
+                        digit, word = recognition
+                        self.on_digit(digit, word)
+                    fired_count = i + 1
+
+                prev_digits = digits
