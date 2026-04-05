@@ -6,7 +6,7 @@ import pyaudio
 
 from config import load_config
 from key_sender import send_key
-from voice_listener import VoiceListener
+from voice_listener_vosk import VoiceListener
 from hotkey_manager import HotkeyManager
 
 
@@ -16,7 +16,7 @@ def get_model_path():
     else:
         base = os.path.join(os.path.dirname(os.path.abspath(__file__)), "..")
 
-    return os.path.join(base, "models", "faster-whisper-tiny")
+    return os.path.join(base, "vosk-model-small-en-us-0.15")
 
 
 def check_microphone():
@@ -57,8 +57,8 @@ def main():
     # Check model
     model_path = get_model_path()
     if not os.path.exists(model_path):
-        print(f"ERROR: Whisper model not found at {model_path}")
-        print("Run: python -c \"from huggingface_hub import snapshot_download; snapshot_download('Systran/faster-whisper-tiny', local_dir='./models/faster-whisper-tiny')\"")
+        print(f"ERROR: Vosk model not found at {model_path}")
+        print("Download vosk-model-small-en-us-0.15 from https://alphacephei.com/vosk/models")
         input("Press Enter to exit...")
         sys.exit(1)
 
