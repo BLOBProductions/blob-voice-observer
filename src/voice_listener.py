@@ -1,8 +1,12 @@
+import os
 import queue
 import re
+import subprocess
+import sys
 import threading
 import time
 
+import ctranslate2
 import numpy as np
 import pyaudio
 import webrtcvad
@@ -85,6 +89,56 @@ class VoiceListener:
         self._segment_queue = queue.Queue(maxsize=5)
 
     @staticmethod
+    def _try_cuda_warmup(model_path, dummy, warmup_kwargs):
+        """Attempt CUDA model load + warmup. Returns model or None."""
+        try:
+            model = WhisperModel(model_path, device="cuda", compute_type="float16")
+            segments, _info = model.transcribe(dummy, **warmup_kwargs)
+            for _ in segments:
+                pass
+            return model
+        except Exception:
+            return None
+
+    @staticmethod
+    def _offer_cuda_install():
+        """If NVIDIA GPU detected but CUDA libs missing, offer to install. Returns True if installed."""
+        if getattr(sys, "frozen", False):
+            return False  # can't pip install in a frozen .exe
+        try:
+            if ctranslate2.get_cuda_device_count() == 0:
+                return False
+        except Exception:
+            return False
+
+        print()
+        print("  NVIDIA GPU detected but CUDA libraries are not installed.")
+        print("  Install for ~10x faster recognition?")
+        print()
+        print("    pip install nvidia-cublas-cu12")
+        print()
+        try:
+            response = input("  Install now? [Y/n] ").strip().lower()
+        except (EOFError, KeyboardInterrupt):
+            return False
+        if response not in ("", "y", "yes"):
+            return False
+
+        print("  Installing (this may take a minute)...")
+        result = subprocess.run(
+            [sys.executable, "-m", "pip", "install", "nvidia-cublas-cu12"],
+            capture_output=True, text=True,
+        )
+        if result.returncode != 0:
+            print(f"  Install failed: {result.stderr.strip()}")
+            return False
+
+        print("  Installed! Restarting app...\n")
+        # Restart the process so the new DLLs are on the search path
+        subprocess.Popen([sys.executable] + sys.argv)
+        sys.exit(0)
+
+    @staticmethod
     def _load_model(model_path):
         """Load model with CUDA->CPU fallback. Warmup forces full initialization."""
         # Non-silent audio + vad_filter=False forces the encoder to actually run,
@@ -92,23 +146,24 @@ class VoiceListener:
         # fails on real audio (cublas is lazy-loaded by CTranslate2).
         dummy = np.ones(SAMPLE_RATE, dtype=np.float32) * 0.01
         warmup_kwargs = dict(language="en", beam_size=1, vad_filter=False)
-        try:
-            model = WhisperModel(model_path, device="cuda", compute_type="float16")
-            # transcribe() returns (generator, info) — must iterate the generator
-            # to run the encoder. list() on the tuple does NOT iterate it.
-            segments, _info = model.transcribe(dummy, **warmup_kwargs)
-            for _ in segments:
-                pass
+
+        # Try CUDA
+        model = VoiceListener._try_cuda_warmup(model_path, dummy, warmup_kwargs)
+        if model:
             print("Device: GPU (CUDA)")
             return model
-        except Exception:
-            model = WhisperModel(model_path, device="cpu", compute_type="int8")
-            segments, _info = model.transcribe(dummy, **warmup_kwargs)
-            for _ in segments:
-                pass
-            print("Device: CPU (slower, digits may queue during rapid speech)")
-            print("  Tip: For GPU acceleration, run: pip install nvidia-cublas-cu12")
-            return model
+
+        # CUDA failed — offer to install CUDA libs if GPU exists
+        VoiceListener._offer_cuda_install()
+        # If _offer_cuda_install triggers a restart, we never reach here.
+        # If user declined or no GPU, fall through to CPU.
+
+        model = WhisperModel(model_path, device="cpu", compute_type="int8")
+        segments, _info = model.transcribe(dummy, **warmup_kwargs)
+        for _ in segments:
+            pass
+        print("Device: CPU")
+        return model
 
     def start(self):
         if not self._stop_event.is_set():
