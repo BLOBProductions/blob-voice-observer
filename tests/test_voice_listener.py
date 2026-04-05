@@ -8,7 +8,6 @@ def _make_listener(debounce_ms=300):
     listener.on_digit = MagicMock()
     listener.debounce_ms = debounce_ms
     listener._last_per_digit = {}
-    listener._last_partial = None
     return listener
 
 
