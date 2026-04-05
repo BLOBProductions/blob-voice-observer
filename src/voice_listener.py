@@ -25,7 +25,7 @@ WORD_TO_DIGIT = {
 INITIAL_PROMPT = "zero one two three four five six seven eight nine"
 
 NO_SPEECH_PROB_THRESHOLD = 0.6
-AVG_LOGPROB_THRESHOLD = -1.0
+AVG_LOGPROB_THRESHOLD = -1.5
 
 
 def extract_digits(text):
@@ -83,16 +83,25 @@ class VoiceListener:
 
     @staticmethod
     def _load_model(model_path):
-        """Load model with CUDA→CPU fallback. Warmup forces full initialization."""
-        dummy = np.zeros(SAMPLE_RATE, dtype=np.float32)
+        """Load model with CUDA->CPU fallback. Warmup forces full initialization."""
+        # Non-silent audio + vad_filter=False forces the encoder to actually run,
+        # which triggers cublas loading. Without this, CUDA appears to work but
+        # fails on real audio (cublas is lazy-loaded by CTranslate2).
+        dummy = np.ones(SAMPLE_RATE, dtype=np.float32) * 0.01
+        warmup_kwargs = dict(language="en", beam_size=1, vad_filter=False)
         try:
             model = WhisperModel(model_path, device="cuda", compute_type="float16")
-            # Force CUDA to fully initialize — cublas etc. are lazy-loaded
-            list(model.transcribe(dummy, language="en", beam_size=1))
+            # transcribe() returns (generator, info) — must iterate the generator
+            # to run the encoder. list() on the tuple does NOT iterate it.
+            segments, _info = model.transcribe(dummy, **warmup_kwargs)
+            for _ in segments:
+                pass
             return model
         except Exception:
             model = WhisperModel(model_path, device="cpu", compute_type="int8")
-            list(model.transcribe(dummy, language="en", beam_size=1))
+            segments, _info = model.transcribe(dummy, **warmup_kwargs)
+            for _ in segments:
+                pass
             return model
 
     def start(self):

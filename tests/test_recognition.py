@@ -58,7 +58,7 @@ class TestHallucinationFilter:
 
     def test_rejects_low_avg_logprob(self):
         from voice_listener import passes_hallucination_filter
-        assert passes_hallucination_filter(no_speech_prob=0.1, avg_logprob=-1.5) is False
+        assert passes_hallucination_filter(no_speech_prob=0.1, avg_logprob=-2.0) is False
 
     def test_boundary_no_speech_prob(self):
         from voice_listener import passes_hallucination_filter
@@ -67,8 +67,8 @@ class TestHallucinationFilter:
 
     def test_boundary_avg_logprob(self):
         from voice_listener import passes_hallucination_filter
-        # -1.0 is at the boundary — should pass (threshold is < -1.0)
-        assert passes_hallucination_filter(no_speech_prob=0.1, avg_logprob=-1.0) is True
+        # -1.5 is at the boundary — should pass (threshold is < -1.5)
+        assert passes_hallucination_filter(no_speech_prob=0.1, avg_logprob=-1.5) is True
 
 
 class TestDebounce:
