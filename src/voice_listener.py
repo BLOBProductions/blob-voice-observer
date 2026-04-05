@@ -99,12 +99,16 @@ class VoiceListener:
             segments, _info = model.transcribe(dummy, **warmup_kwargs)
             for _ in segments:
                 pass
+            print("Device: GPU (CUDA)")
             return model
         except Exception:
             model = WhisperModel(model_path, device="cpu", compute_type="int8")
             segments, _info = model.transcribe(dummy, **warmup_kwargs)
             for _ in segments:
                 pass
+            print("Device: CPU")
+            print("  Tip: Install CUDA Toolkit 12.x for ~10x faster inference")
+            print("  https://developer.nvidia.com/cuda-downloads")
             return model
 
     def start(self):
