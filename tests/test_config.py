@@ -111,3 +111,31 @@ def test_negative_trailing_silence_falls_back(tmp_path):
     config_path.write_text(json.dumps({"trailing_silence_ms": -50}))
     config = load_config(str(config_path))
     assert config["trailing_silence_ms"] == 120
+
+
+def test_trailing_silence_at_minimum_boundary(tmp_path):
+    config_path = tmp_path / "config.json"
+    config_path.write_text(json.dumps({"trailing_silence_ms": 30}))
+    config = load_config(str(config_path))
+    assert config["trailing_silence_ms"] == 30
+
+
+def test_trailing_silence_at_maximum_boundary(tmp_path):
+    config_path = tmp_path / "config.json"
+    config_path.write_text(json.dumps({"trailing_silence_ms": 2000}))
+    config = load_config(str(config_path))
+    assert config["trailing_silence_ms"] == 2000
+
+
+def test_trailing_silence_above_maximum_clamped(tmp_path):
+    config_path = tmp_path / "config.json"
+    config_path.write_text(json.dumps({"trailing_silence_ms": 5000}))
+    config = load_config(str(config_path))
+    assert config["trailing_silence_ms"] == 2000
+
+
+def test_float_vad_aggressiveness_falls_back(tmp_path):
+    config_path = tmp_path / "config.json"
+    config_path.write_text(json.dumps({"vad_aggressiveness": 2.5}))
+    config = load_config(str(config_path))
+    assert config["vad_aggressiveness"] == 3

@@ -71,6 +71,8 @@ def load_config(config_path="config.json"):
 
 
 def _save_config(config, config_path):
+    # dirname("config.json") returns "" — fall back to "." to avoid
+    # makedirs("") which raises FileNotFoundError on Windows.
     os.makedirs(os.path.dirname(config_path) or ".", exist_ok=True)
     with open(config_path, "w") as f:
         json.dump(config, f, indent=2)

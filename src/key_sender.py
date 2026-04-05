@@ -1,3 +1,13 @@
+"""Win32 SendInput keystroke injection for digit keys 0-9.
+
+Uses SendInput (not keybd_event or the keyboard library) because:
+1. SendInput reliably injects into DirectX/fullscreen games
+2. keybd_event is deprecated and ignored by modern game input handlers
+3. The keyboard library uses hooks that some anti-cheat blocks
+
+Requires admin privileges if the target window (VALORANT) is elevated.
+"""
+
 import ctypes
 from ctypes import wintypes
 

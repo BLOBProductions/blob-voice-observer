@@ -1,5 +1,18 @@
+"""Blob Voice Observer — entry point.
+
+Startup sequence:
+1. Check admin privileges (warn if not elevated — VALORANT may ignore keystrokes)
+2. Load config.json (creates default if missing)
+3. Check for a connected microphone
+4. Load the Vosk speech model (takes 1-2 seconds)
+5. Register hotkey (toggle or hold mode)
+6. Enter main loop — Ctrl+C to exit
+"""
+
+import ctypes
 import sys
 import os
+import threading
 import time
 
 import pyaudio
@@ -38,6 +51,13 @@ def main():
     print("=== Blob Voice Observer ===")
     print()
 
+    # Admin check — SendInput is silently blocked by Windows UIPI if VALORANT
+    # runs elevated but this tool does not.
+    if not ctypes.windll.shell32.IsUserAnAdmin():
+        print("WARNING: Not running as Administrator. Keystrokes may not reach VALORANT.")
+        print("Right-click the exe and select 'Run as administrator'.")
+        print()
+
     # Resolve config path
     if getattr(sys, "frozen", False):
         config_path = os.path.join(os.path.dirname(sys.executable), "config.json")
@@ -64,15 +84,17 @@ def main():
 
     # Display config
     active_key = config["toggle_key"] if config["mode"] == "toggle" else config["hold_key"]
-    mode_label = "toggle" if config["mode"] == "toggle" else "hold"
-    print(f"Mode: {mode_label} ({active_key})")
+    print(f"Mode: {config['mode']} ({active_key})")
     print("Status: PAUSED")
     print()
 
     # Voice listener callback
     def on_digit(digit, word):
-        print(f'  Heard: "{word}" -> Sent: {digit}')
-        send_key(digit)
+        success = send_key(digit)
+        if success:
+            print(f'  Heard: "{word}" -> Sent: {digit}')
+        else:
+            print(f'  WARNING: Heard "{word}" but keystroke {digit} was BLOCKED (run as admin?)')
 
     # Initialize voice listener (model loaded here, takes a moment)
     print("Loading speech model...")
@@ -86,14 +108,16 @@ def main():
     print("Model loaded.")
     print()
 
-    # Hotkey state change callback
+    # Hotkey state change callback — dispatch start/stop off the keyboard hook
+    # thread to avoid blocking Windows' hook message pump (which can cause
+    # Windows to kill the hook if it doesn't return promptly).
     def on_state_change(active):
         if active:
             print(f"[{active_key}] Status: LISTENING")
-            listener.start()
+            threading.Thread(target=listener.start, daemon=True).start()
         else:
             print(f"[{active_key}] Status: PAUSED")
-            listener.stop()
+            threading.Thread(target=listener.stop, daemon=True).start()
 
     # Start hotkey manager
     hotkey_mgr = HotkeyManager(
@@ -104,7 +128,7 @@ def main():
     )
     hotkey_mgr.start()
 
-    print(f"Press {active_key} to {'toggle listening' if mode_label == 'toggle' else 'hold and speak'}.")
+    print(f"Press {active_key} to {'toggle listening' if config['mode'] == 'toggle' else 'hold and speak'}.")
     print("Press Ctrl+C to exit.")
     print()
 

@@ -1,11 +1,4 @@
-import struct
-import pytest
-
-
-SAMPLE_RATE = 16000
-FRAME_MS = 30
-FRAME_SIZE = int(SAMPLE_RATE * FRAME_MS / 1000)  # 480 samples
-FRAME_BYTES = FRAME_SIZE * 2  # 960 bytes
+from speech_detector import SAMPLE_RATE, FRAME_MS, FRAME_SIZE, FRAME_BYTES
 
 
 def _silent_frame():

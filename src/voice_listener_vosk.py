@@ -1,3 +1,12 @@
+"""Vosk hybrid voice listener — VAD + forced finalization for ~120ms latency.
+
+Feeds every audio frame to both webrtcvad (for speech boundary detection) and
+Vosk (for streaming decode). When the VAD detects speech has ended, FinalResult()
+forces Vosk to emit its best hypothesis immediately — near-instant since Vosk has
+been decoding in real-time. This bypasses Vosk's built-in endpointer which adds
+500-800ms of silence-detection latency.
+"""
+
 import json
 import re
 import threading
@@ -22,6 +31,10 @@ WORD_TO_DIGIT = {
     "nine": 9,
 }
 
+# Constrain Vosk to only recognize these words (closed grammar).
+# This dramatically improves accuracy and speed for digit-only recognition.
+# "[unk]" is Vosk's catch-all for anything outside the grammar — without it,
+# Vosk forces every utterance into one of the digit words.
 GRAMMAR = json.dumps(list(WORD_TO_DIGIT.keys()) + ["[unk]"])
 
 
@@ -53,6 +66,9 @@ class DigitDebouncer:
         self._last_per_digit[digit] = now
         return True
 
+    def reset(self):
+        self._last_per_digit.clear()
+
 
 class VoiceListener:
     def __init__(self, model_path, on_digit, debounce_ms=300,
@@ -64,41 +80,76 @@ class VoiceListener:
         self._debouncer = DigitDebouncer(debounce_ms)
         self._stop_event = threading.Event()
         self._stop_event.set()
+        self._lock = threading.Lock()
         self._thread = None
         self._audio = None
         self._stream = None
 
     def start(self):
-        if not self._stop_event.is_set():
-            return  # already running
-        self._stop_event.clear()
-        self._debouncer._last_per_digit.clear()
-        self._audio = pyaudio.PyAudio()
-        self._stream = self._audio.open(
-            format=pyaudio.paInt16,
-            channels=1,
-            rate=SAMPLE_RATE,
-            input=True,
-            frames_per_buffer=FRAME_SIZE,
-        )
-        self._thread = threading.Thread(target=self._listen_loop, daemon=True)
-        self._thread.start()
+        with self._lock:
+            if not self._stop_event.is_set():
+                return  # already running
+            self._stop_event.clear()
+            self._debouncer.reset()
+            try:
+                self._audio = pyaudio.PyAudio()
+                self._stream = self._audio.open(
+                    format=pyaudio.paInt16,
+                    channels=1,
+                    rate=SAMPLE_RATE,
+                    input=True,
+                    frames_per_buffer=FRAME_SIZE,
+                )
+            except Exception as e:
+                print(f"ERROR: Could not open microphone: {e}")
+                self._stop_event.set()
+                if self._stream:
+                    try:
+                        self._stream.close()
+                    except Exception:
+                        pass
+                    self._stream = None
+                if self._audio:
+                    try:
+                        self._audio.terminate()
+                    except Exception:
+                        pass
+                    self._audio = None
+                return
+            self._thread = threading.Thread(target=self._listen_loop, daemon=True)
+            self._thread.start()
 
     def stop(self):
-        self._stop_event.set()
-        if self._thread:
-            self._thread.join(timeout=2)
-            self._thread = None
-        if self._stream:
-            self._stream.stop_stream()
-            self._stream.close()
-            self._stream = None
-        if self._audio:
-            self._audio.terminate()
-            self._audio = None
+        with self._lock:
+            self._stop_event.set()
+            if self._thread:
+                self._thread.join(timeout=2)
+                self._thread = None
+            if self._stream:
+                try:
+                    self._stream.stop_stream()
+                    self._stream.close()
+                except Exception:
+                    pass
+                self._stream = None
+            if self._audio:
+                try:
+                    self._audio.terminate()
+                except Exception:
+                    pass
+                self._audio = None
 
     def _listen_loop(self):
-        """Feed every frame to both VAD and Vosk. Single thread — no queue needed."""
+        """Main audio loop — feeds every frame to both VAD and Vosk.
+
+        Vosk receives EVERY frame via AcceptWaveform() so it decodes
+        incrementally in real-time. But we do NOT rely on Vosk's built-in
+        endpointer (which adds 500-800ms of latency). Instead, webrtcvad
+        detects speech boundaries via SpeechDetector, and when it signals
+        speech-end we call FinalResult() to force Vosk to emit immediately.
+        FinalResult() also resets the recognizer, which is correct — each
+        utterance is independent.
+        """
         vad = webrtcvad.Vad(self.vad_aggressiveness)
         detector = SpeechDetector(
             vad=vad,
@@ -113,18 +164,14 @@ class VoiceListener:
                 data = self._stream.read(FRAME_SIZE, exception_on_overflow=False)
             except Exception:
                 if not self._stop_event.is_set():
+                    self._stop_event.set()  # allow restart via start()
                     print("WARNING: Microphone disconnected. Toggle off and on to resume.")
                 break
 
-            # Feed to Vosk — it decodes incrementally in real-time
             recognizer.AcceptWaveform(data)
-
-            # Feed to VAD state machine — detects speech boundaries
             speech_ended = detector.process_frame(data)
 
             if speech_ended is not None:
-                # Speech segment complete — force Vosk to finalize NOW
-                # instead of waiting for its own slow endpointer
                 result = json.loads(recognizer.FinalResult())
                 text = result.get("text", "").strip()
 

@@ -1,3 +1,10 @@
+"""Toggle/hold hotkey binding for activating/deactivating voice listening.
+
+Supports two modes:
+- toggle: press key once to start, press again to stop
+- hold: hold key to listen, release to stop
+"""
+
 import keyboard
 import threading
 
