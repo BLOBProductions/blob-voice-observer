@@ -1,3 +1,4 @@
+import queue
 import re
 import threading
 import time
@@ -77,9 +78,11 @@ class VoiceListener:
         self._debouncer = DigitDebouncer(debounce_ms)
         self._stop_event = threading.Event()
         self._stop_event.set()
-        self._thread = None
+        self._listen_thread = None
+        self._transcribe_thread = None
         self._audio = None
         self._stream = None
+        self._segment_queue = queue.Queue()
 
     @staticmethod
     def _load_model(model_path):
@@ -116,8 +119,10 @@ class VoiceListener:
             input=True,
             frames_per_buffer=FRAME_SIZE,
         )
-        self._thread = threading.Thread(target=self._listen_loop, daemon=True)
-        self._thread.start()
+        self._listen_thread = threading.Thread(target=self._listen_loop, daemon=True)
+        self._transcribe_thread = threading.Thread(target=self._transcribe_loop, daemon=True)
+        self._listen_thread.start()
+        self._transcribe_thread.start()
 
     def stop(self):
         self._stop_event.set()
@@ -128,11 +133,15 @@ class VoiceListener:
         if self._audio:
             self._audio.terminate()
             self._audio = None
-        if self._thread:
-            self._thread.join(timeout=2)
-            self._thread = None
+        if self._listen_thread:
+            self._listen_thread.join(timeout=2)
+            self._listen_thread = None
+        if self._transcribe_thread:
+            self._transcribe_thread.join(timeout=2)
+            self._transcribe_thread = None
 
     def _listen_loop(self):
+        """Read mic frames and feed to VAD. Never blocks on transcription."""
         vad = webrtcvad.Vad(self.vad_aggressiveness)
         detector = SpeechDetector(
             vad=vad,
@@ -149,7 +158,16 @@ class VoiceListener:
 
             speech_audio = detector.process_frame(data)
             if speech_audio is not None:
-                self._transcribe(speech_audio)
+                self._segment_queue.put(speech_audio)
+
+    def _transcribe_loop(self):
+        """Consume speech segments from queue and transcribe."""
+        while not self._stop_event.is_set():
+            try:
+                audio_bytes = self._segment_queue.get(timeout=0.1)
+            except queue.Empty:
+                continue
+            self._transcribe(audio_bytes)
 
     def _transcribe(self, audio_bytes):
         audio = np.frombuffer(audio_bytes, dtype=np.int16).astype(np.float32) / 32768.0
