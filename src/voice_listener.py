@@ -19,7 +19,7 @@ WORD_TO_DIGIT = {
 
 GRAMMAR = json.dumps(list(WORD_TO_DIGIT.keys()) + ["[unk]"])
 SAMPLE_RATE = 16000
-CHUNK_SIZE = 2000  # ~125ms chunks for faster response
+CHUNK_SIZE = 2000  # ~125ms chunks for faster endpoint detection
 
 
 class VoiceListener:
@@ -27,7 +27,7 @@ class VoiceListener:
         self.model = Model(model_path)
         self.on_digit = on_digit
         self.debounce_ms = debounce_ms
-        self._last_per_digit = {}  # per-digit debounce timestamps
+        self._last_per_digit = {}
         self._stop_event = threading.Event()
         self._stop_event.set()
         self._thread = None
@@ -77,8 +77,9 @@ class VoiceListener:
 
     def _listen_loop(self):
         recognizer = KaldiRecognizer(self.model, SAMPLE_RATE, GRAMMAR)
-        prev_digits = []  # digit words from previous chunk's partial
-        fired_count = 0   # how many positions we've already fired
+        # Set Vosk to finalize faster after each word
+        recognizer.SetMaxAlternatives(0)
+        recognizer.SetWords(False)
 
         while not self._stop_event.is_set():
             try:
@@ -89,35 +90,14 @@ class VoiceListener:
                 break
 
             if recognizer.AcceptWaveform(data):
-                prev_digits = []
-                fired_count = 0
-            else:
-                partial = json.loads(recognizer.PartialResult())
-                partial_text = partial.get("partial", "").strip()
-                if not partial_text:
+                result = json.loads(recognizer.Result())
+                text = result.get("text", "").strip()
+                if not text:
                     continue
-
-                # Extract digit words only, preserving order
-                digits = [w for w in partial_text.split() if w in WORD_TO_DIGIT]
-
-                # Count how many positions are stable (same word, same position, 2 chunks)
-                stable = 0
-                for i in range(min(len(prev_digits), len(digits))):
-                    if prev_digits[i] == digits[i]:
-                        stable = i + 1
-                    else:
-                        break
-
-                # If Vosk rewrote words we already fired, adjust
-                if stable < fired_count:
-                    fired_count = stable
-
-                # Fire any newly confirmed words
-                for i in range(fired_count, stable):
-                    recognition = self.process_recognition(digits[i])
-                    if recognition:
-                        digit, word = recognition
-                        self.on_digit(digit, word)
-                    fired_count = i + 1
-
-                prev_digits = digits
+                # Fire every digit word in the final result
+                for word in text.split():
+                    if word in WORD_TO_DIGIT:
+                        recognition = self.process_recognition(word)
+                        if recognition:
+                            digit, w = recognition
+                            self.on_digit(digit, w)
