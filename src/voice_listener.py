@@ -28,15 +28,16 @@ class VoiceListener:
         self.on_digit = on_digit
         self.debounce_ms = debounce_ms
         self._last_recognition_time = 0
-        self._running = False
+        self._stop_event = threading.Event()
+        self._stop_event.set()  # starts in stopped state
         self._thread = None
         self._audio = None
         self._stream = None
 
     def start(self):
-        if self._running:
-            return
-        self._running = True
+        if not self._stop_event.is_set():
+            return  # already running
+        self._stop_event.clear()
         self._audio = pyaudio.PyAudio()
         self._stream = self._audio.open(
             format=pyaudio.paInt16,
@@ -49,7 +50,7 @@ class VoiceListener:
         self._thread.start()
 
     def stop(self):
-        self._running = False
+        self._stop_event.set()
         if self._stream:
             self._stream.stop_stream()
             self._stream.close()
@@ -73,11 +74,12 @@ class VoiceListener:
 
     def _listen_loop(self):
         recognizer = KaldiRecognizer(self.model, SAMPLE_RATE, GRAMMAR)
-        while self._running:
+        while not self._stop_event.is_set():
             try:
                 data = self._stream.read(CHUNK_SIZE, exception_on_overflow=False)
             except Exception:
-                print("WARNING: Microphone disconnected. Toggle off and on to resume.")
+                if not self._stop_event.is_set():
+                    print("WARNING: Microphone disconnected. Toggle off and on to resume.")
                 break
 
             if recognizer.AcceptWaveform(data):
