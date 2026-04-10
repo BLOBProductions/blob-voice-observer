@@ -1,4 +1,16 @@
+# Runtime dependencies for BLOB Voice Observer.
+# Install with: pip install -r requirements.txt
+
+# Offline speech recognition engine (Kaldi-based). The small English
+# model is ~50 MB and must be downloaded separately — see README.
 vosk>=0.3.45
+
+# Voice Activity Detector. We use the pre-built wheel fork because
+# upstream `webrtcvad` has no working Windows wheels.
 webrtcvad-wheels>=2.0.10
+
+# Microphone audio capture (16 kHz mono PCM).
 pyaudio>=0.2.14
+
+# Global hotkey binding (toggle / hold key for listening).
 keyboard>=0.13.5

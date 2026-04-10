@@ -1,5 +1,5 @@
 @echo off
-echo === Building Blob Voice Observer ===
+echo === Building BLOB Voice Observer ===
 echo.
 
 if not exist "vosk-model-small-en-us-0.15" (

@@ -1,3 +1,12 @@
+"""Config loader for BLOB Voice Observer.
+
+Reads `config.json` next to the executable (or project root when running
+from source). Missing keys fall back to DEFAULTS, invalid values log a
+warning and fall back too — the program never hard-fails on a bad config.
+
+If `config.json` does not exist, a default file is created on first run.
+"""
+
 import json
 import os
 

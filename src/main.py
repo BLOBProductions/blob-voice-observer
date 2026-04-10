@@ -1,4 +1,4 @@
-"""Blob Voice Observer — entry point.
+"""BLOB Voice Observer — entry point.
 
 Startup sequence:
 1. Check admin privileges (warn if not elevated — VALORANT may ignore keystrokes)
@@ -48,7 +48,7 @@ def check_microphone():
 
 
 def main():
-    print("=== Blob Voice Observer ===")
+    print("=== BLOB Voice Observer ===")
     print()
 
     # Admin check — SendInput is silently blocked by Windows UIPI if VALORANT

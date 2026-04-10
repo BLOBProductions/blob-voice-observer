@@ -1,3 +1,14 @@
+"""VAD-based speech boundary detector.
+
+Consumes 30 ms / 16 kHz / mono PCM frames and reports when a complete
+spoken utterance has ended, so the caller can forward the audio (or a
+finalization signal) to a speech recognizer with minimal latency.
+
+Used by `voice_listener_vosk.VoiceListener` — it feeds every frame to
+both this detector (for endpointing) and Vosk (for streaming decode),
+then calls `FinalResult()` the moment this detector signals end-of-speech.
+"""
+
 from collections import deque
 
 SAMPLE_RATE = 16000
