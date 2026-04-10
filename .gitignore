@@ -24,7 +24,9 @@ Thumbs.db
 dist/
 build/
 *.spec
+*.zip
 BlobVoiceObserver.zip
+BlobVoiceObserver-*.zip
 
 # Runtime / local config
 config.json
