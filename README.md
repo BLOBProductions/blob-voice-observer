@@ -1,7 +1,7 @@
 # BLOB Voice Observer
 
-> A side tool by **[BLOB Productions](https://blob.productions/)** —
-> check out BLOB at **[blob.productions](https://blob.productions/)**.
+> A side tool by **[BLOB Productions](https://blob.productions/)**.
+> Check out BLOB at **[blob.productions](https://blob.productions/)**.
 
 **Hands-free camera switching for VALORANT observers.** Say a digit (`"one"`
 through `"nine"`, or `"zero"`) and the tool presses the matching number key
@@ -11,13 +11,13 @@ Built for esports broadcasts where observers need to react faster than a
 keyboard allows, but works for anyone who wants voice-triggered number-key
 hotkeys in any Windows application.
 
-- **Offline.** Uses [Vosk](https://alphacephei.com/vosk/) locally — no
+- **Offline.** Uses [Vosk](https://alphacephei.com/vosk/) locally. No
   cloud, no account, no network calls.
 - **Fast.** ~120 ms from end-of-speech to keystroke.
 - **Background-friendly.** Optional `target_window` mode sends keystrokes
   to VALORANT even when it is **not** the focused window.
 
-> ⚠️ **Disclaimer — not affiliated with Riot Games or VALORANT.** This is
+> ⚠️ **Disclaimer: not affiliated with Riot Games or VALORANT.** This is
 > an unofficial community tool. Use at your own risk. VALORANT's Vanguard
 > anti-cheat has never, to BLOB's knowledge, flagged keystroke-level
 > automation of this kind, but Riot's ToS and anti-cheat behavior can
@@ -29,15 +29,15 @@ hotkeys in any Windows application.
 
 ## What it can do
 
-- Recognize the spoken digits `zero`–`nine` and send the corresponding
-  keystroke (`0`–`9`).
+- Recognize the spoken digits `zero` through `nine` and send the
+  corresponding keystroke (`0` through `9`).
 - Toggle mode (tap a hotkey to start/stop listening) **or** hold mode
   (listen only while a key is held).
 - Per-digit debounce so a single "five" doesn't fire twice.
 - Two keystroke backends:
-  - **SendInput** — fires into the foreground window. Works with DirectX
+  - **SendInput**: fires into the foreground window. Works with DirectX
     and fullscreen games.
-  - **PostMessage** — fires into a specific window by title, so the game
+  - **PostMessage**: fires into a specific window by title, so the game
     does **not** need focus.
 - Closed-grammar recognizer (Vosk is restricted to the ten digit words),
   which dramatically improves accuracy in noisy rooms.
@@ -48,7 +48,7 @@ hotkeys in any Windows application.
 
 - No cloud services, no telemetry, no analytics. Everything stays on
   your machine.
-- No arbitrary speech-to-text — the grammar is locked to the ten digits.
+- No arbitrary speech-to-text. The grammar is locked to the ten digits.
   This is by design: accuracy and latency are the priorities.
 - No macOS / Linux support. The keystroke injection uses Win32 APIs.
 
@@ -57,11 +57,11 @@ hotkeys in any Windows application.
 ## Microphone note
 
 To keep detection both **accurate and fast**, the pipeline is tuned to
-react to subtle speech cues — which also makes it somewhat sensitive to
+react to subtle speech cues, which also makes it somewhat sensitive to
 background noise and to software that rewrites your mic signal.
 
 **If the program feels slower or less accurate than you'd like, try
-tuning your mic settings first — that usually fixes it before any config
+tuning your mic settings first. That usually fixes it before any config
 changes are needed.**
 
 A quick checklist, in rough order of impact, in *Windows Settings →
@@ -86,17 +86,17 @@ forgiving `vad_aggressiveness` / `trailing_silence_ms`
 
 ---
 
-## Quick Start (users — pre-built exe)
+## Quick Start (users, pre-built exe)
 
 1. Download the latest release zip from the
    [Releases](https://github.com/BLOBProductions/blob-voice-observer/releases)
    page and unzip it.
 2. **Right-click** `BlobVoiceObserver.exe` → **Run as administrator**
    (required if VALORANT is elevated, which it usually is).
-   *Windows SmartScreen may warn about an unsigned exe on first launch —
-   click **More info → Run anyway**.*
+   *Windows SmartScreen may warn about an unsigned exe on first launch.
+   Click **More info → Run anyway**.*
 3. Press **F6** to start listening (default hotkey).
-4. Say a digit: `"one"`, `"two"`, … `"nine"`, `"zero"`.
+4. Say a digit: `"one"`, `"two"`, ... `"nine"`, `"zero"`.
 5. Press **F6** again to pause.
 6. Press **Ctrl+C** in the console window to exit.
 
@@ -104,7 +104,7 @@ Any standard headset or desktop microphone works (see disclaimer above).
 
 > If VALORANT runs as Administrator (common due to Vanguard anti-cheat),
 > you **must** run this tool as Administrator too. Otherwise Windows
-> silently blocks the keystrokes — User Interface Privilege Isolation
+> silently blocks the keystrokes. User Interface Privilege Isolation
 > (UIPI) forbids a non-elevated process from sending input to an
 > elevated one.
 
@@ -133,9 +133,9 @@ created automatically on first run.
 | `mode`                | `"toggle"` (press to flip on/off) or `"hold"` (hold to listen) |
 | `toggle_key`          | Key for toggle mode, e.g. `"F6"`, `"F5"`, `"scroll_lock"` |
 | `hold_key`            | Key for hold mode, e.g. `"caps_lock"`, `"space"`, `"right_shift"` |
-| `debounce_ms`         | Cooldown (per digit) between repeat recognitions — prevents double-fires |
-| `vad_aggressiveness`  | `0`–`3`. Higher = stricter silence detection, faster response. Lower for noisy rooms. |
-| `trailing_silence_ms` | How long to wait after speech ends before finalizing (30–2000 ms). Lower = faster but may clip short words. |
+| `debounce_ms`         | Cooldown (per digit) between repeat recognitions; prevents double-fires |
+| `vad_aggressiveness`  | `0` to `3`. Higher = stricter silence detection, faster response. Lower for noisy rooms. |
+| `trailing_silence_ms` | How long to wait after speech ends before finalizing (30-2000 ms). Lower = faster but may clip short words. |
 | `target_window`       | Window title for PostMessage mode, e.g. `"VALORANT"`. Leave empty (`""`) to send to the foreground window via SendInput. |
 
 ### Tuning presets
@@ -184,7 +184,7 @@ Build-only (not shipped with the exe):
 
 External assets:
 
-- **Vosk model** — `vosk-model-small-en-us-0.15` (~50 MB).
+- **Vosk model**: `vosk-model-small-en-us-0.15` (~50 MB).
   [Download link](https://alphacephei.com/vosk/models/vosk-model-small-en-us-0.15.zip).
   Licensed Apache 2.0.
 
@@ -257,7 +257,7 @@ Mic -> 30 ms frames -> webrtcvad -> SpeechDetector state machine
    of the ten digit words.
 4. The moment `SpeechDetector` signals end-of-speech, we call
    `FinalResult()` to force Vosk to emit its current best hypothesis
-   immediately — instead of waiting 500–800 ms for Vosk's own endpointer.
+   immediately, instead of waiting 500-800 ms for Vosk's own endpointer.
 5. The recognized digit is debounced and passed to `key_sender`, which
    uses either `SendInput` (foreground) or `PostMessage` (targeted
    window) to press the corresponding number key.
@@ -305,7 +305,7 @@ config.json               # Runtime configuration (gitignored, generated on firs
 | First word after unpausing gets clipped | Raise `trailing_silence_ms` slightly, or raise `pre_pad_ms` (source only). |
 | Tool stops responding after unplugging mic | Toggle the hotkey off then back on to reinitialize the audio stream. |
 | Antivirus quarantines the exe | Add `BlobVoiceObserver.exe` to exclusions. Win32 `SendInput` is a common false-positive trigger. |
-| `target_window` says "NOT FOUND" | The window hasn't been created yet — start VALORANT, then press the hotkey. The tool retries on each keystroke. |
+| `target_window` says "NOT FOUND" | The window hasn't been created yet; start VALORANT, then press the hotkey. The tool retries on each keystroke. |
 
 ---
 
@@ -315,7 +315,7 @@ Contributions are welcome. Before opening a PR:
 
 1. Run the test suite: `venv\Scripts\pytest tests/ -v`
 2. Keep comments focused on **why**, not **what**.
-3. Don't add cloud/network dependencies — this is an offline tool by
+3. Don't add cloud/network dependencies. This is an offline tool by
    design.
 4. Windows-only is fine; cross-platform PRs are welcome but not
    required.
@@ -337,7 +337,7 @@ For more of what we make, visit
 
 ## License
 
-MIT — see [LICENSE](LICENSE).
+MIT. See [LICENSE](LICENSE).
 
 The bundled Vosk model (`vosk-model-small-en-us-0.15`) is licensed under
 [Apache 2.0](https://github.com/alphacep/vosk-api/blob/master/COPYING).
