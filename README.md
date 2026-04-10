@@ -1,7 +1,7 @@
 # BLOB Voice Observer
 
 > A side tool by **[BLOB Productions](https://blob.productions/)** —
-> check out our main product at **[blob.productions](https://blob.productions/)**.
+> check out BLOB at **[blob.productions](https://blob.productions/)**.
 
 **Hands-free camera switching for VALORANT observers.** Say a digit (`"one"`
 through `"nine"`, or `"zero"`) and the tool presses the matching number key
@@ -19,9 +19,9 @@ hotkeys in any Windows application.
 
 > ⚠️ **Disclaimer — not affiliated with Riot Games or VALORANT.** This is
 > an unofficial community tool. Use at your own risk. VALORANT's Vanguard
-> anti-cheat has never, to the authors' knowledge, flagged keystroke-level
+> anti-cheat has never, to BLOB's knowledge, flagged keystroke-level
 > automation of this kind, but Riot's ToS and anti-cheat behavior can
-> change without notice. The authors take no responsibility for account
+> change without notice. BLOB takes no responsibility for account
 > action. For broadcast/observer use in a controlled production
 > environment (its intended use case), this has been stable.
 
@@ -332,7 +332,7 @@ For bug reports, please include:
 ## About
 
 Built by **[BLOB Productions](https://blob.productions/)**.
-For our main product and more of what we make, visit
+For more of what we make, visit
 [blob.productions](https://blob.productions/).
 
 ## License
