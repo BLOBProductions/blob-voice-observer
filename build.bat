@@ -40,12 +40,13 @@ if exist config.json (
 
 echo.
 echo Copying LICENSE, NOTICE, and third-party license texts to dist...
-REM Apache 2.0 requires redistributed binaries to ship the license and
-REM attribution alongside. These files must travel with the exe.
+REM Apache 2.0 and MIT both require redistributed binaries to ship the
+REM license and attribution alongside. These files must travel with the
+REM exe, so we copy everything in third_party\ into the dist folder.
 copy LICENSE dist\BlobVoiceObserver\LICENSE
 copy NOTICE  dist\BlobVoiceObserver\NOTICE
 if not exist dist\BlobVoiceObserver\third_party mkdir dist\BlobVoiceObserver\third_party
-copy third_party\apache-2.0.txt dist\BlobVoiceObserver\third_party\apache-2.0.txt
+xcopy /Y third_party\*.txt dist\BlobVoiceObserver\third_party\
 
 echo.
 echo === Build complete ===

@@ -93,6 +93,8 @@ forgiving `vad_aggressiveness` / `trailing_silence_ms`
    page and unzip it.
 2. **Right-click** `BlobVoiceObserver.exe` → **Run as administrator**
    (required if VALORANT is elevated, which it usually is).
+   *Windows SmartScreen may warn about an unsigned exe on first launch —
+   click **More info → Run anyway**.*
 3. Press **F6** to start listening (default hotkey).
 4. Say a digit: `"one"`, `"two"`, … `"nine"`, `"zero"`.
 5. Press **F6** again to pause.

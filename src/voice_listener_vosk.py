@@ -52,14 +52,20 @@ def extract_digits(text):
 
 
 class DigitDebouncer:
-    """Per-digit debounce to prevent double-fires."""
+    """Per-digit debounce to prevent double-fires.
+
+    Uses `time.monotonic()` rather than wall-clock so NTP adjustments or
+    manual clock changes during a long session can't make the debouncer
+    either re-fire every digit (backwards jump) or eat the first digit
+    after the jump (forwards jump).
+    """
 
     def __init__(self, debounce_ms=300):
         self.debounce_ms = debounce_ms
         self._last_per_digit = {}
 
     def should_fire(self, digit):
-        now = time.time() * 1000
+        now = time.monotonic() * 1000
         last_time = self._last_per_digit.get(digit, 0)
         if now - last_time < self.debounce_ms:
             return False
@@ -165,9 +171,24 @@ class VoiceListener:
             except Exception:
                 # A read error during a clean stop is expected — stop() closes
                 # the stream under us. Only surface it to the user if it
-                # happened while we were still meant to be listening.
-                if not self._stop_event.is_set():
-                    self._stop_event.set()  # allow restart via start()
+                # happened while we were still meant to be listening. Either
+                # way, release the stream/audio handles here so a later
+                # start() doesn't leak them.
+                was_intentional = self._stop_event.is_set()
+                self._stop_event.set()  # allow restart via start()
+                if self._stream is not None:
+                    try:
+                        self._stream.close()
+                    except Exception:
+                        pass
+                    self._stream = None
+                if self._audio is not None:
+                    try:
+                        self._audio.terminate()
+                    except Exception:
+                        pass
+                    self._audio = None
+                if not was_intentional:
                     print("WARNING: Microphone disconnected. Toggle off and on to resume.")
                 break
 

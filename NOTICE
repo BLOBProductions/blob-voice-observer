@@ -1,42 +1,112 @@
 BLOB Voice Observer
 Copyright (c) 2026 BLOBProductions <bean@blob.productions>
+https://github.com/BLOBProductions/blob-voice-observer
 
 This product is licensed under the MIT License — see LICENSE.
 
-It also bundles, statically links, or redistributes the following
-third-party software. Their respective licenses are preserved here.
+It also bundles, statically links, or redistributes the third-party
+software listed below. All license texts referenced from this file are
+located in `third_party/` at the root of the source repository, and are
+also copied into every PyInstaller-built distribution via `build.bat`.
 
 ================================================================================
+Directly bundled components
+================================================================================
+
+--------------------------------------------------------------------------------
 Vosk speech recognition engine
 Copyright (c) 2020 Alpha Cephei Inc.
-Licensed under the Apache License, Version 2.0 — see third_party/apache-2.0.txt
-https://github.com/alphacep/vosk-api
-================================================================================
+License: Apache License, Version 2.0 — see third_party/apache-2.0.txt
+Source:  https://github.com/alphacep/vosk-api
 
-================================================================================
+Installed via the upstream `vosk` PyPI wheel. Unmodified by this
+project. The wheel ships `libvosk.dll` (the main engine) plus GCC
+runtime DLLs — see "Transitive components" below.
+--------------------------------------------------------------------------------
+
+--------------------------------------------------------------------------------
 Vosk English model (vosk-model-small-en-us-0.15)
 Copyright (c) 2020 Alpha Cephei Inc.
-Licensed under the Apache License, Version 2.0 — see third_party/apache-2.0.txt
-https://alphacephei.com/vosk/models
-================================================================================
+License: Apache License, Version 2.0 — see third_party/apache-2.0.txt
+Source:  https://alphacephei.com/vosk/models
 
-================================================================================
+Downloaded separately by the user or developer and bundled into the
+PyInstaller distribution unmodified. The upstream archive ships a
+`README` file containing the copyright notice; that file is preserved
+verbatim inside the bundled `vosk-model-small-en-us-0.15/` directory
+in both the source tree and the redistributable exe.
+--------------------------------------------------------------------------------
+
+--------------------------------------------------------------------------------
 webrtcvad-wheels  (Windows-friendly pre-built wheel fork of `webrtcvad`)
-Copyright (c) 2016 John Wiseman
-Licensed under the MIT License.
-https://github.com/daanzu/py-webrtcvad-wheels
-================================================================================
+Copyright (c) 2016 John Wiseman and contributors
+License: MIT License — see third_party/mit-webrtcvad-wheels.txt
+Source:  https://github.com/daanzu/py-webrtcvad-wheels
+--------------------------------------------------------------------------------
 
-================================================================================
+--------------------------------------------------------------------------------
 PyAudio
 Copyright (c) 2006 Hubert Pham
-Licensed under the MIT License.
-https://people.csail.mit.edu/hubert/pyaudio/
-================================================================================
+License: MIT License — see third_party/mit-pyaudio.txt
+Source:  https://people.csail.mit.edu/hubert/pyaudio/
+--------------------------------------------------------------------------------
 
-================================================================================
+--------------------------------------------------------------------------------
 keyboard
 Copyright (c) 2016 BoppreH
-Licensed under the MIT License.
-https://github.com/boppreh/keyboard
+License: MIT License — see third_party/mit-keyboard.txt
+Source:  https://github.com/boppreh/keyboard
+--------------------------------------------------------------------------------
+
+================================================================================
+Transitive components (shipped as binaries inside the upstream vosk wheel)
+================================================================================
+
+These are NOT added by this project. They are part of the Vosk wheel
+published by Alpha Cephei, are redistributed by this project only
+because the PyInstaller bundle includes the vosk wheel unmodified, and
+are listed here so the redistributable exe's attribution chain is
+complete.
+
+--------------------------------------------------------------------------------
+Kaldi speech recognition toolkit
+Copyright (c) Johns Hopkins University and contributors
+License: Apache License, Version 2.0 — see third_party/apache-2.0.txt
+Source:  https://github.com/kaldi-asr/kaldi
+
+Statically linked into `libvosk.dll`.
+--------------------------------------------------------------------------------
+
+--------------------------------------------------------------------------------
+OpenFST (Weighted Finite-State Transducer library)
+Copyright (c) 2005-2020 Google Inc.
+License: Apache License, Version 2.0 — see third_party/apache-2.0.txt
+Source:  https://www.openfst.org/
+
+Statically linked into `libvosk.dll` through Kaldi.
+--------------------------------------------------------------------------------
+
+--------------------------------------------------------------------------------
+GCC runtime libraries  (libgcc_s_seh-1.dll, libstdc++-6.dll)
+Copyright (c) Free Software Foundation, Inc.
+License: GPL-3.0 with the GCC Runtime Library Exception
+Reference: https://gcc.gnu.org/onlinedocs/libstdc++/manual/license.html
+
+Redistributed as-is from the Vosk wheel. The GCC Runtime Library
+Exception permits distribution of compiled programs that link these
+runtime libraries under terms of the program's own license (here MIT
+for our own code, Apache 2.0 for Vosk).
+--------------------------------------------------------------------------------
+
+--------------------------------------------------------------------------------
+MinGW-w64 winpthreads  (libwinpthread-1.dll)
+Copyright (c) 2011 mingw-w64 project
+License: MIT / BSD-style (MinGW-w64 runtime)
+Reference: https://www.mingw-w64.org/
+
+Redistributed as-is from the Vosk wheel.
+--------------------------------------------------------------------------------
+
+================================================================================
+End of third-party notices
 ================================================================================

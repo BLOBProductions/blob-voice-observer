@@ -52,8 +52,10 @@ def main():
     print()
 
     # Admin check — SendInput is silently blocked by Windows UIPI if VALORANT
-    # runs elevated but this tool does not.
-    if not ctypes.windll.shell32.IsUserAnAdmin():
+    # runs elevated but this tool does not. Only meaningful on Windows; the
+    # sys.platform guard lets contributors run main.py on other OSes to poke
+    # at config/parsing code without hitting an AttributeError on windll.
+    if sys.platform == "win32" and not ctypes.windll.shell32.IsUserAnAdmin():
         print("WARNING: Not running as Administrator. Keystrokes may not reach VALORANT.")
         print("Right-click the exe and select 'Run as administrator'.")
         print()

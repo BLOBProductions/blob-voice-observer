@@ -114,3 +114,56 @@ def test_start_registers_hold_hotkeys():
         mgr.start()
         mock_kb.on_press_key.assert_called_once_with("caps_lock", mgr._on_hold_press, suppress=False)
         mock_kb.on_release_key.assert_called_once_with("caps_lock", mgr._on_hold_release, suppress=False)
+
+
+def test_stop_unhooks_only_our_handles_toggle():
+    mgr = HotkeyManager(
+        mode="toggle",
+        toggle_key="F6",
+        hold_key="caps_lock",
+        on_state_change=MagicMock(),
+    )
+
+    with patch("hotkey_manager.keyboard") as mock_kb:
+        mock_kb.on_press_key.return_value = "handle-toggle"
+        mgr.start()
+        mgr.stop()
+        # We must call unhook() per handle we registered, and never
+        # unhook_all() — which would stomp on hooks owned by other code.
+        assert not mock_kb.unhook_all.called
+        mock_kb.unhook.assert_called_once_with("handle-toggle")
+
+
+def test_stop_unhooks_only_our_handles_hold():
+    mgr = HotkeyManager(
+        mode="hold",
+        toggle_key="F6",
+        hold_key="caps_lock",
+        on_state_change=MagicMock(),
+    )
+
+    with patch("hotkey_manager.keyboard") as mock_kb:
+        mock_kb.on_press_key.return_value = "handle-press"
+        mock_kb.on_release_key.return_value = "handle-release"
+        mgr.start()
+        mgr.stop()
+        assert not mock_kb.unhook_all.called
+        assert mock_kb.unhook.call_args_list == [
+            call("handle-press"),
+            call("handle-release"),
+        ]
+
+
+def test_start_is_idempotent():
+    mgr = HotkeyManager(
+        mode="toggle",
+        toggle_key="F6",
+        hold_key="caps_lock",
+        on_state_change=MagicMock(),
+    )
+
+    with patch("hotkey_manager.keyboard") as mock_kb:
+        mock_kb.on_press_key.return_value = "handle-toggle"
+        mgr.start()
+        mgr.start()  # second call must not re-register
+        mock_kb.on_press_key.assert_called_once()

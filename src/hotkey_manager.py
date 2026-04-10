@@ -27,6 +27,9 @@ class HotkeyManager:
         return self._active
 
     def start(self):
+        if self._hook_handles:
+            # Already started — refuse to re-register and duplicate hooks.
+            return
         if self.mode == "toggle":
             self._hook_handles.append(
                 keyboard.on_press_key(self.toggle_key, self._on_toggle, suppress=False)
