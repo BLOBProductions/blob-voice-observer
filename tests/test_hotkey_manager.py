@@ -129,7 +129,7 @@ def test_stop_unhooks_only_our_handles_toggle():
         mgr.start()
         mgr.stop()
         # We must call unhook() per handle we registered, and never
-        # unhook_all() — which would stomp on hooks owned by other code.
+        # unhook_all(), which would stomp on hooks owned by other code.
         assert not mock_kb.unhook_all.called
         mock_kb.unhook.assert_called_once_with("handle-toggle")
 

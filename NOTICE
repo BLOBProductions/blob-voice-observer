@@ -2,7 +2,7 @@ BLOB Voice Observer
 Copyright (c) 2026 BLOBProductions <bean@blob.productions>
 https://github.com/BLOBProductions/blob-voice-observer
 
-This product is licensed under the MIT License — see LICENSE.
+This product is licensed under the MIT License. See LICENSE.
 
 It also bundles, statically links, or redistributes the third-party
 software listed below. All license texts referenced from this file are
@@ -16,18 +16,18 @@ Directly bundled components
 --------------------------------------------------------------------------------
 Vosk speech recognition engine
 Copyright (c) 2020 Alpha Cephei Inc.
-License: Apache License, Version 2.0 — see third_party/apache-2.0.txt
+License: Apache License, Version 2.0 (see third_party/apache-2.0.txt)
 Source:  https://github.com/alphacep/vosk-api
 
 Installed via the upstream `vosk` PyPI wheel. Unmodified by this
 project. The wheel ships `libvosk.dll` (the main engine) plus GCC
-runtime DLLs — see "Transitive components" below.
+runtime DLLs. See "Transitive components" below.
 --------------------------------------------------------------------------------
 
 --------------------------------------------------------------------------------
 Vosk English model (vosk-model-small-en-us-0.15)
 Copyright (c) 2020 Alpha Cephei Inc.
-License: Apache License, Version 2.0 — see third_party/apache-2.0.txt
+License: Apache License, Version 2.0 (see third_party/apache-2.0.txt)
 Source:  https://alphacephei.com/vosk/models
 
 Downloaded separately by the user or developer and bundled into the
@@ -40,21 +40,21 @@ in both the source tree and the redistributable exe.
 --------------------------------------------------------------------------------
 webrtcvad-wheels  (Windows-friendly pre-built wheel fork of `webrtcvad`)
 Copyright (c) 2016 John Wiseman and contributors
-License: MIT License — see third_party/mit-webrtcvad-wheels.txt
+License: MIT License (see third_party/mit-webrtcvad-wheels.txt)
 Source:  https://github.com/daanzu/py-webrtcvad-wheels
 --------------------------------------------------------------------------------
 
 --------------------------------------------------------------------------------
 PyAudio
 Copyright (c) 2006 Hubert Pham
-License: MIT License — see third_party/mit-pyaudio.txt
+License: MIT License (see third_party/mit-pyaudio.txt)
 Source:  https://people.csail.mit.edu/hubert/pyaudio/
 --------------------------------------------------------------------------------
 
 --------------------------------------------------------------------------------
 keyboard
 Copyright (c) 2016 BoppreH
-License: MIT License — see third_party/mit-keyboard.txt
+License: MIT License (see third_party/mit-keyboard.txt)
 Source:  https://github.com/boppreh/keyboard
 --------------------------------------------------------------------------------
 
@@ -71,7 +71,7 @@ complete.
 --------------------------------------------------------------------------------
 Kaldi speech recognition toolkit
 Copyright (c) Johns Hopkins University and contributors
-License: Apache License, Version 2.0 — see third_party/apache-2.0.txt
+License: Apache License, Version 2.0 (see third_party/apache-2.0.txt)
 Source:  https://github.com/kaldi-asr/kaldi
 
 Statically linked into `libvosk.dll`.
@@ -80,7 +80,7 @@ Statically linked into `libvosk.dll`.
 --------------------------------------------------------------------------------
 OpenFST (Weighted Finite-State Transducer library)
 Copyright (c) 2005-2020 Google Inc.
-License: Apache License, Version 2.0 — see third_party/apache-2.0.txt
+License: Apache License, Version 2.0 (see third_party/apache-2.0.txt)
 Source:  https://www.openfst.org/
 
 Statically linked into `libvosk.dll` through Kaldi.

@@ -1,12 +1,12 @@
-"""BLOB Voice Observer — entry point.
+"""BLOB Voice Observer, entry point.
 
 Startup sequence:
-1. Check admin privileges (warn if not elevated — VALORANT may ignore keystrokes)
+1. Check admin privileges (warn if not elevated, VALORANT may ignore keystrokes)
 2. Load config.json (creates default if missing)
 3. Check for a connected microphone
 4. Load the Vosk speech model (takes 1-2 seconds)
 5. Register hotkey (toggle or hold mode)
-6. Enter main loop — Ctrl+C to exit
+6. Enter main loop, Ctrl+C to exit
 """
 
 import ctypes
@@ -51,7 +51,7 @@ def main():
     print("=== BLOB Voice Observer ===")
     print()
 
-    # Admin check — SendInput is silently blocked by Windows UIPI if VALORANT
+    # Admin check, SendInput is silently blocked by Windows UIPI if VALORANT
     # runs elevated but this tool does not. Only meaningful on Windows; the
     # sys.platform guard lets contributors run main.py on other OSes to poke
     # at config/parsing code without hitting an AttributeError on windll.
@@ -92,16 +92,16 @@ def main():
     if target_title:
         hwnd = find_window(target_title)
         if hwnd:
-            print(f"Target window: \"{target_title}\" (PostMessage mode) — FOUND (hwnd={hwnd})")
+            print(f"Target window: \"{target_title}\" (PostMessage mode), FOUND (hwnd={hwnd})")
         else:
-            print(f"Target window: \"{target_title}\" (PostMessage mode) — NOT FOUND (will retry on each keystroke)")
+            print(f"Target window: \"{target_title}\" (PostMessage mode), NOT FOUND (will retry on each keystroke)")
     else:
         print("Target window: foreground (SendInput mode)")
 
     print("Status: PAUSED")
     print()
 
-    # Voice listener callback — cache the target HWND to avoid
+    # Voice listener callback, cache the target HWND to avoid
     # per-keystroke EnumWindows lookups.
     cached_hwnd = [None]  # mutable container for nonlocal access
 
@@ -135,7 +135,7 @@ def main():
     print("Model loaded.")
     print()
 
-    # Hotkey state change callback — dispatch start/stop off the keyboard hook
+    # Hotkey state change callback, dispatch start/stop off the keyboard hook
     # thread to avoid blocking Windows' hook message pump (which can cause
     # Windows to kill the hook if it doesn't return promptly).
     def on_state_change(active):

@@ -18,7 +18,7 @@ class HotkeyManager:
         self._active = False
         self._lock = threading.Lock()
         # Track the handles we registered so stop() can unhook only
-        # *our* hooks instead of `keyboard.unhook_all()` — which would
+        # *our* hooks instead of `keyboard.unhook_all()`, which would
         # stomp on any other hook the host process has registered.
         self._hook_handles = []
 
@@ -28,7 +28,7 @@ class HotkeyManager:
 
     def start(self):
         if self._hook_handles:
-            # Already started — refuse to re-register and duplicate hooks.
+            # Already started, refuse to re-register and duplicate hooks.
             return
         if self.mode == "toggle":
             self._hook_handles.append(
@@ -47,7 +47,7 @@ class HotkeyManager:
             try:
                 keyboard.unhook(handle)
             except (KeyError, ValueError):
-                # Already unhooked — safe to ignore.
+                # Already unhooked, safe to ignore.
                 pass
         self._hook_handles.clear()
 

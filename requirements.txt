@@ -2,7 +2,7 @@
 # Install with: pip install -r requirements.txt
 
 # Offline speech recognition engine (Kaldi-based). The small English
-# model is ~50 MB and must be downloaded separately — see README.
+# model is ~50 MB and must be downloaded separately, see README.
 vosk>=0.3.45
 
 # Voice Activity Detector. We use the pre-built wheel fork because

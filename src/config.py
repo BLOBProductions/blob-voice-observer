@@ -2,7 +2,7 @@
 
 Reads `config.json` next to the executable (or project root when running
 from source). Missing keys fall back to DEFAULTS, invalid values log a
-warning and fall back too — the program never hard-fails on a bad config.
+warning and fall back too, the program never hard-fails on a bad config.
 
 If `config.json` does not exist, a default file is created on first run.
 """
@@ -25,7 +25,7 @@ VALID_MODES = {"toggle", "hold"}
 
 def _is_real_number(val):
     # bool is a subclass of int in Python, so isinstance(True, int) is True.
-    # Reject it explicitly — True/False should never satisfy numeric ranges.
+    # Reject it explicitly, True/False should never satisfy numeric ranges.
     return isinstance(val, (int, float)) and not isinstance(val, bool)
 
 
@@ -95,7 +95,7 @@ def load_config(config_path="config.json"):
 
 
 def _save_config(config, config_path):
-    # dirname("config.json") returns "" — fall back to "." to avoid
+    # dirname("config.json") returns "", fall back to "." to avoid
     # makedirs("") which raises FileNotFoundError on Windows.
     os.makedirs(os.path.dirname(config_path) or ".", exist_ok=True)
     with open(config_path, "w", encoding="utf-8") as f:

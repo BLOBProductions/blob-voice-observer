@@ -1,8 +1,8 @@
-"""Vosk hybrid voice listener — VAD + forced finalization for ~120ms latency.
+"""Vosk hybrid voice listener, VAD + forced finalization for ~120ms latency.
 
 Feeds every audio frame to both webrtcvad (for speech boundary detection) and
 Vosk (for streaming decode). When the VAD detects speech has ended, FinalResult()
-forces Vosk to emit its best hypothesis immediately — near-instant since Vosk has
+forces Vosk to emit its best hypothesis immediately, near-instant since Vosk has
 been decoding in real-time. This bypasses Vosk's built-in endpointer which adds
 500-800ms of silence-detection latency.
 """
@@ -33,7 +33,7 @@ WORD_TO_DIGIT = {
 
 # Constrain Vosk to only recognize these words (closed grammar).
 # This dramatically improves accuracy and speed for digit-only recognition.
-# "[unk]" is Vosk's catch-all for anything outside the grammar — without it,
+# "[unk]" is Vosk's catch-all for anything outside the grammar, without it,
 # Vosk forces every utterance into one of the digit words.
 GRAMMAR = json.dumps(list(WORD_TO_DIGIT.keys()) + ["[unk]"])
 
@@ -146,14 +146,14 @@ class VoiceListener:
                 self._audio = None
 
     def _listen_loop(self):
-        """Main audio loop — feeds every frame to both VAD and Vosk.
+        """Main audio loop, feeds every frame to both VAD and Vosk.
 
         Vosk receives EVERY frame via AcceptWaveform() so it decodes
         incrementally in real-time. But we do NOT rely on Vosk's built-in
         endpointer (which adds 500-800ms of latency). Instead, webrtcvad
         detects speech boundaries via SpeechDetector, and when it signals
         speech-end we call FinalResult() to force Vosk to emit immediately.
-        FinalResult() also resets the recognizer, which is correct — each
+        FinalResult() also resets the recognizer, which is correct, each
         utterance is independent.
         """
         vad = webrtcvad.Vad(self.vad_aggressiveness)
@@ -169,7 +169,7 @@ class VoiceListener:
             try:
                 data = self._stream.read(FRAME_SIZE, exception_on_overflow=False)
             except Exception:
-                # A read error during a clean stop is expected — stop() closes
+                # A read error during a clean stop is expected, stop() closes
                 # the stream under us. Only surface it to the user if it
                 # happened while we were still meant to be listening. Either
                 # way, release the stream/audio handles here so a later

@@ -12,7 +12,7 @@ Note: this module uses `ctypes.windll` which only exists on Windows. On
 other platforms we still let the module import cleanly (so pytest can
 collect tests that mock `user32`) but leave `user32 = None`. Actually
 calling `send_key` / `send_key_to_window` on a non-Windows host will
-raise `AttributeError` on `None` — which is intentional; the tool is
+raise `AttributeError` on `None`, which is intentional; the tool is
 Windows-only at runtime.
 """
 

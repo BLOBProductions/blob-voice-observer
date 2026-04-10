@@ -4,7 +4,7 @@ Consumes 30 ms / 16 kHz / mono PCM frames and reports when a complete
 spoken utterance has ended, so the caller can forward the audio (or a
 finalization signal) to a speech recognizer with minimal latency.
 
-Used by `voice_listener_vosk.VoiceListener` — it feeds every frame to
+Used by `voice_listener_vosk.VoiceListener`, it feeds every frame to
 both this detector (for endpointing) and Vosk (for streaming decode),
 then calls `FinalResult()` the moment this detector signals end-of-speech.
 """
@@ -27,7 +27,7 @@ class SpeechDetector:
         TRAILING -> IDLE     when silence exceeds trailing_silence_ms
                              (emits segment if >= min_speech_ms, else discards as noise)
         SPEAKING -> IDLE     when total duration exceeds max_speech_ms
-                             (discards buffer — protects against continuous noise)
+                             (discards buffer, protects against continuous noise)
 
     Args:
         vad: webrtcvad.Vad instance used to classify each frame

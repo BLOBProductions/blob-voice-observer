@@ -49,5 +49,5 @@ class TestDebounce:
     def test_same_digit_after_cooldown(self):
         db = DigitDebouncer(debounce_ms=20)
         assert db.should_fire(5) is True
-        time.sleep(0.06)  # 60ms >> 20ms debounce — safe margin for Windows ~15ms sleep granularity
+        time.sleep(0.06)  # 60ms >> 20ms debounce, safe margin for Windows ~15ms sleep granularity
         assert db.should_fire(5) is True  # cooldown elapsed
