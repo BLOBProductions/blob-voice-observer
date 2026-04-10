@@ -18,7 +18,7 @@ import time
 import pyaudio
 
 from config import load_config
-from key_sender import send_key
+from key_sender import send_key, send_key_to_window, find_window
 from voice_listener_vosk import VoiceListener
 from hotkey_manager import HotkeyManager
 
@@ -85,12 +85,37 @@ def main():
     # Display config
     active_key = config["toggle_key"] if config["mode"] == "toggle" else config["hold_key"]
     print(f"Mode: {config['mode']} ({active_key})")
+
+    target_title = config.get("target_window", "")
+    if target_title:
+        hwnd = find_window(target_title)
+        if hwnd:
+            print(f"Target window: \"{target_title}\" (PostMessage mode) — FOUND (hwnd={hwnd})")
+        else:
+            print(f"Target window: \"{target_title}\" (PostMessage mode) — NOT FOUND (will retry on each keystroke)")
+    else:
+        print("Target window: foreground (SendInput mode)")
+
     print("Status: PAUSED")
     print()
 
-    # Voice listener callback
+    # Voice listener callback — cache the target HWND to avoid
+    # per-keystroke EnumWindows lookups.
+    cached_hwnd = [None]  # mutable container for nonlocal access
+
     def on_digit(digit, word):
-        success = send_key(digit)
+        if target_title:
+            if cached_hwnd[0] is None:
+                cached_hwnd[0] = find_window(target_title)
+            if not cached_hwnd[0]:
+                print(f'  WARNING: Heard "{word}" but window "{target_title}" not found')
+                return
+            success = send_key_to_window(digit, cached_hwnd[0])
+            if not success:
+                cached_hwnd[0] = None  # invalidate, retry next keystroke
+        else:
+            success = send_key(digit)
+
         if success:
             print(f'  Heard: "{word}" -> Sent: {digit}')
         else:

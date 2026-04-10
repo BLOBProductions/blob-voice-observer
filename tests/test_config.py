@@ -22,6 +22,7 @@ def test_valid_config_loaded(tmp_path):
         "debounce_ms": 500,
         "vad_aggressiveness": 3,
         "trailing_silence_ms": 120,
+        "target_window": "",
     }
     config_path.write_text(json.dumps(custom))
     config = load_config(str(config_path))

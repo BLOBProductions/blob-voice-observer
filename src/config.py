@@ -8,6 +8,7 @@ DEFAULTS = {
     "debounce_ms": 300,
     "vad_aggressiveness": 3,
     "trailing_silence_ms": 120,
+    "target_window": "",
 }
 
 VALID_MODES = {"toggle", "hold"}
@@ -66,6 +67,13 @@ def load_config(config_path="config.json"):
             print(f"WARNING: trailing_silence_ms {val} above maximum, clamped to 2000")
         else:
             print(f"WARNING: Invalid trailing_silence_ms '{val}', using default {DEFAULTS['trailing_silence_ms']}")
+
+    if "target_window" in user_config:
+        val = user_config["target_window"]
+        if isinstance(val, str):
+            config["target_window"] = val
+        else:
+            print(f"WARNING: Invalid target_window '{val}', must be a string")
 
     return config
 
