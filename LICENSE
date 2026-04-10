@@ -22,6 +22,7 @@ THE SOFTWARE.
 
 ---
 
-This project bundles the Vosk speech recognition model
-(`vosk-model-small-en-us-0.15`), which is licensed under Apache 2.0:
-https://github.com/alphacep/vosk-api/blob/master/COPYING
+This project redistributes third-party software under compatible
+licenses (Apache 2.0 and MIT). See `NOTICE` for the full list of
+bundled components and `third_party/apache-2.0.txt` for the Apache 2.0
+license text.

@@ -17,6 +17,10 @@ class HotkeyManager:
         self.on_state_change = on_state_change
         self._active = False
         self._lock = threading.Lock()
+        # Track the handles we registered so stop() can unhook only
+        # *our* hooks instead of `keyboard.unhook_all()` — which would
+        # stomp on any other hook the host process has registered.
+        self._hook_handles = []
 
     @property
     def is_active(self):
@@ -24,13 +28,25 @@ class HotkeyManager:
 
     def start(self):
         if self.mode == "toggle":
-            keyboard.on_press_key(self.toggle_key, self._on_toggle, suppress=False)
+            self._hook_handles.append(
+                keyboard.on_press_key(self.toggle_key, self._on_toggle, suppress=False)
+            )
         elif self.mode == "hold":
-            keyboard.on_press_key(self.hold_key, self._on_hold_press, suppress=False)
-            keyboard.on_release_key(self.hold_key, self._on_hold_release, suppress=False)
+            self._hook_handles.append(
+                keyboard.on_press_key(self.hold_key, self._on_hold_press, suppress=False)
+            )
+            self._hook_handles.append(
+                keyboard.on_release_key(self.hold_key, self._on_hold_release, suppress=False)
+            )
 
     def stop(self):
-        keyboard.unhook_all()
+        for handle in self._hook_handles:
+            try:
+                keyboard.unhook(handle)
+            except (KeyError, ValueError):
+                # Already unhooked — safe to ignore.
+                pass
+        self._hook_handles.clear()
 
     def _on_toggle(self, event):
         with self._lock:

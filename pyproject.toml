@@ -1,3 +1,46 @@
+[project]
+name = "blob-voice-observer"
+version = "0.1.0"
+description = "Hands-free voice-triggered digit keystrokes for VALORANT observers (Windows, offline)."
+readme = "README.md"
+requires-python = ">=3.10"
+license = { text = "MIT" }
+authors = [
+  { name = "BLOBProductions", email = "bean@blob.productions" },
+]
+keywords = ["valorant", "voice-recognition", "vosk", "observer", "esports", "windows"]
+classifiers = [
+  "Development Status :: 4 - Beta",
+  "Environment :: Console",
+  "Intended Audience :: End Users/Desktop",
+  "License :: OSI Approved :: MIT License",
+  "Operating System :: Microsoft :: Windows",
+  "Programming Language :: Python :: 3",
+  "Programming Language :: Python :: 3.10",
+  "Programming Language :: Python :: 3.11",
+  "Programming Language :: Python :: 3.12",
+  "Programming Language :: Python :: 3.13",
+  "Topic :: Multimedia :: Sound/Audio :: Speech",
+  "Topic :: Games/Entertainment",
+]
+dependencies = [
+  "vosk>=0.3.45",
+  "webrtcvad-wheels>=2.0.10",
+  "pyaudio>=0.2.14",
+  "keyboard>=0.13.5",
+]
+
+[project.optional-dependencies]
+dev = [
+  "pytest>=7",
+  "pyinstaller>=6",
+]
+
+[project.urls]
+Homepage = "https://blob.productions/"
+Repository = "https://github.com/BLOBProductions/blob-voice-observer"
+Issues = "https://github.com/BLOBProductions/blob-voice-observer/issues"
+
 [tool.pytest.ini_options]
 pythonpath = ["src"]
 testpaths = ["tests"]

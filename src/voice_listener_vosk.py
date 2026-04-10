@@ -163,6 +163,9 @@ class VoiceListener:
             try:
                 data = self._stream.read(FRAME_SIZE, exception_on_overflow=False)
             except Exception:
+                # A read error during a clean stop is expected — stop() closes
+                # the stream under us. Only surface it to the user if it
+                # happened while we were still meant to be listening.
                 if not self._stop_event.is_set():
                     self._stop_event.set()  # allow restart via start()
                     print("WARNING: Microphone disconnected. Toggle off and on to resume.")

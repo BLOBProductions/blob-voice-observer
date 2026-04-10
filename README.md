@@ -280,10 +280,13 @@ src/
 
 tests/                    # Pytest suite for each src/ module
 docs/                     # Background notes and latency research
+third_party/              # Third-party license texts (Apache 2.0)
 build.bat                 # PyInstaller build script
-BlobVoiceObserver.spec    # PyInstaller spec (generated, kept for reference)
+pyproject.toml            # Project metadata + pytest config
 requirements.txt          # Runtime dependencies
-config.json               # Runtime configuration (created on first run)
+LICENSE                   # MIT license
+NOTICE                    # Third-party attributions
+config.json               # Runtime configuration (gitignored, generated on first run)
 ```
 
 ---

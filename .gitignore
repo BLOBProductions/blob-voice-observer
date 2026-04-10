@@ -1,13 +1,33 @@
+# Python
 __pycache__/
 *.pyc
+*.egg-info/
+.mypy_cache/
+.ruff_cache/
+.pytest_cache/
+
+# Virtualenvs
 venv/
 .venv/
-vosk-model-small-en-us-0.15/
+env/
+
+# Editors / IDE
+.vscode/
+.idea/
+*.swp
+
+# OS junk
+.DS_Store
+Thumbs.db
+
+# Build / distribution
 dist/
 build/
 *.spec
-*.egg-info/
-.pytest_cache/
-models/
-config.json
 BlobVoiceObserver.zip
+
+# Runtime / local config
+config.json
+models/
+vosk-model-small-en-us-0.15/
+model.zip

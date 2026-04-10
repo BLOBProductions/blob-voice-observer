@@ -23,6 +23,12 @@ DEFAULTS = {
 VALID_MODES = {"toggle", "hold"}
 
 
+def _is_real_number(val):
+    # bool is a subclass of int in Python, so isinstance(True, int) is True.
+    # Reject it explicitly — True/False should never satisfy numeric ranges.
+    return isinstance(val, (int, float)) and not isinstance(val, bool)
+
+
 def load_config(config_path="config.json"):
     if not os.path.exists(config_path):
         _save_config(DEFAULTS, config_path)
@@ -30,7 +36,7 @@ def load_config(config_path="config.json"):
         return dict(DEFAULTS)
 
     try:
-        with open(config_path, "r") as f:
+        with open(config_path, "r", encoding="utf-8") as f:
             user_config = json.load(f)
     except json.JSONDecodeError:
         print(f"WARNING: Config file at {config_path} is not valid JSON, using defaults")
@@ -52,26 +58,27 @@ def load_config(config_path="config.json"):
                 print(f"WARNING: Invalid {key}, using default '{DEFAULTS[key]}'")
 
     if "debounce_ms" in user_config:
-        if isinstance(user_config["debounce_ms"], (int, float)) and user_config["debounce_ms"] >= 0:
-            config["debounce_ms"] = int(user_config["debounce_ms"])
+        val = user_config["debounce_ms"]
+        if _is_real_number(val) and val >= 0:
+            config["debounce_ms"] = int(val)
         else:
             print(f"WARNING: Invalid debounce_ms, using default {DEFAULTS['debounce_ms']}")
 
     if "vad_aggressiveness" in user_config:
         val = user_config["vad_aggressiveness"]
-        if isinstance(val, int) and 0 <= val <= 3:
+        if isinstance(val, int) and not isinstance(val, bool) and 0 <= val <= 3:
             config["vad_aggressiveness"] = val
         else:
             print(f"WARNING: Invalid vad_aggressiveness '{val}', using default {DEFAULTS['vad_aggressiveness']}")
 
     if "trailing_silence_ms" in user_config:
         val = user_config["trailing_silence_ms"]
-        if isinstance(val, (int, float)) and 30 <= val <= 2000:
+        if _is_real_number(val) and 30 <= val <= 2000:
             config["trailing_silence_ms"] = int(val)
-        elif isinstance(val, (int, float)) and 0 < val < 30:
+        elif _is_real_number(val) and 0 < val < 30:
             config["trailing_silence_ms"] = 30
             print(f"WARNING: trailing_silence_ms {val} below minimum, clamped to 30")
-        elif isinstance(val, (int, float)) and val > 2000:
+        elif _is_real_number(val) and val > 2000:
             config["trailing_silence_ms"] = 2000
             print(f"WARNING: trailing_silence_ms {val} above maximum, clamped to 2000")
         else:
@@ -91,5 +98,5 @@ def _save_config(config, config_path):
     # dirname("config.json") returns "" — fall back to "." to avoid
     # makedirs("") which raises FileNotFoundError on Windows.
     os.makedirs(os.path.dirname(config_path) or ".", exist_ok=True)
-    with open(config_path, "w") as f:
+    with open(config_path, "w", encoding="utf-8") as f:
         json.dump(config, f, indent=2)

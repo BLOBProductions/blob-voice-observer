@@ -1,8 +1,17 @@
 # Latency Problem: Voice Recognition Too Slow
 
+> **Historical note.** This is the research brief that motivated the
+> current VAD + Vosk hybrid architecture. It describes the problem as
+> it stood **before** the fix — in particular, references to
+> `src/voice_listener.py` are to the old final-results-only listener
+> that no longer exists. For the current implementation that solved
+> this, see [`src/voice_listener_vosk.py`](../src/voice_listener_vosk.py)
+> and option **D** ("Hybrid approach") at the bottom of this doc — that
+> is the direction we ultimately took.
+
 ## The Project
 
-Blob Voice Observer — a Windows tool that converts spoken digits ("zero" through "nine") into keyboard input for VALORANT observer camera switching. The tool must feel near-realtime for live esports production.
+BLOB Voice Observer — a Windows tool that converts spoken digits ("zero" through "nine") into keyboard input for VALORANT observer camera switching. The tool must feel near-realtime for live esports production.
 
 ## The Problem
 
@@ -83,9 +92,9 @@ Use VAD to detect when speech ends, then immediately call `recognizer.FinalResul
 
 Whatever solution we pick must work with the existing project structure. The voice listener is a single class (`VoiceListener` in `src/voice_listener.py`) with `start()`, `stop()`, and a callback `on_digit(digit, word)`. The rest of the app (hotkey manager, key sender, config, main) is stable and doesn't need to change.
 
-## File References
+## File References (historical)
 
-- `src/voice_listener.py` — current implementation (final-results-only, reliable but slow)
-- `docs/superpowers/specs/2026-04-05-voice-digit-observer-design.md` — full design spec
-- `docs/superpowers/plans/2026-04-05-voice-digit-observer.md` — implementation plan
-- `requirements.txt` — current dependencies (vosk>=0.3.45, pyaudio>=0.2.14, keyboard>=0.13.5)
+- `src/voice_listener.py` — the original final-results-only listener
+  (reliable but slow). Replaced by `src/voice_listener_vosk.py`, which
+  implements option D below.
+- `requirements.txt` — current dependencies.

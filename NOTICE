@@ -1,0 +1,42 @@
+BLOB Voice Observer
+Copyright (c) 2026 BLOBProductions <bean@blob.productions>
+
+This product is licensed under the MIT License — see LICENSE.
+
+It also bundles, statically links, or redistributes the following
+third-party software. Their respective licenses are preserved here.
+
+================================================================================
+Vosk speech recognition engine
+Copyright (c) 2020 Alpha Cephei Inc.
+Licensed under the Apache License, Version 2.0 — see third_party/apache-2.0.txt
+https://github.com/alphacep/vosk-api
+================================================================================
+
+================================================================================
+Vosk English model (vosk-model-small-en-us-0.15)
+Copyright (c) 2020 Alpha Cephei Inc.
+Licensed under the Apache License, Version 2.0 — see third_party/apache-2.0.txt
+https://alphacephei.com/vosk/models
+================================================================================
+
+================================================================================
+webrtcvad-wheels  (Windows-friendly pre-built wheel fork of `webrtcvad`)
+Copyright (c) 2016 John Wiseman
+Licensed under the MIT License.
+https://github.com/daanzu/py-webrtcvad-wheels
+================================================================================
+
+================================================================================
+PyAudio
+Copyright (c) 2006 Hubert Pham
+Licensed under the MIT License.
+https://people.csail.mit.edu/hubert/pyaudio/
+================================================================================
+
+================================================================================
+keyboard
+Copyright (c) 2016 BoppreH
+Licensed under the MIT License.
+https://github.com/boppreh/keyboard
+================================================================================

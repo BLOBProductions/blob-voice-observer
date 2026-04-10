@@ -7,9 +7,17 @@ Two modes:
   window by title, so VALORANT does NOT need to be the active window.
 
 Requires admin privileges if the target window (VALORANT) is elevated.
+
+Note: this module uses `ctypes.windll` which only exists on Windows. On
+other platforms we still let the module import cleanly (so pytest can
+collect tests that mock `user32`) but leave `user32 = None`. Actually
+calling `send_key` / `send_key_to_window` on a non-Windows host will
+raise `AttributeError` on `None` — which is intentional; the tool is
+Windows-only at runtime.
 """
 
 import ctypes
+import sys
 from ctypes import wintypes
 
 # --- Shared constants ---
@@ -58,13 +66,16 @@ class INPUT(ctypes.Structure):
 WM_KEYDOWN = 0x0100
 WM_KEYUP = 0x0101
 
-user32 = ctypes.windll.user32
-user32.FindWindowW.argtypes = [wintypes.LPCWSTR, wintypes.LPCWSTR]
-user32.FindWindowW.restype = wintypes.HWND
-user32.PostMessageW.argtypes = [wintypes.HWND, wintypes.UINT, wintypes.WPARAM, wintypes.LPARAM]
-user32.PostMessageW.restype = wintypes.BOOL
-user32.MapVirtualKeyW.argtypes = [wintypes.UINT, wintypes.UINT]
-user32.MapVirtualKeyW.restype = wintypes.UINT
+if sys.platform == "win32":
+    user32 = ctypes.windll.user32
+    user32.FindWindowW.argtypes = [wintypes.LPCWSTR, wintypes.LPCWSTR]
+    user32.FindWindowW.restype = wintypes.HWND
+    user32.PostMessageW.argtypes = [wintypes.HWND, wintypes.UINT, wintypes.WPARAM, wintypes.LPARAM]
+    user32.PostMessageW.restype = wintypes.BOOL
+    user32.MapVirtualKeyW.argtypes = [wintypes.UINT, wintypes.UINT]
+    user32.MapVirtualKeyW.restype = wintypes.UINT
+else:
+    user32 = None
 
 
 def _make_lparam(scan_code, is_keyup):
