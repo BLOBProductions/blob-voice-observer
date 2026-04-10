@@ -1,5 +1,8 @@
 # BLOB Voice Observer
 
+> A side tool by **[BLOB Productions](https://blob.productions/)** —
+> check out our main product at **[blob.productions](https://blob.productions/)**.
+
 **Hands-free camera switching for VALORANT observers.** Say a digit (`"one"`
 through `"nine"`, or `"zero"`) and the tool presses the matching number key
 in VALORANT to switch to that player's camera.
@@ -320,6 +323,12 @@ For bug reports, please include:
 - What you said, what happened, and what you expected
 
 ---
+
+## About
+
+Built by **[BLOB Productions](https://blob.productions/)**.
+For our main product and more of what we make, visit
+[blob.productions](https://blob.productions/).
 
 ## License
 
