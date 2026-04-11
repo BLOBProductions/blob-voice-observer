@@ -1,6 +1,6 @@
 [project]
 name = "blob-voice-observer"
-version = "0.1.0"
+version = "0.1.1"
 description = "Hands-free voice-triggered digit keystrokes for VALORANT observers (Windows, offline)."
 readme = "README.md"
 requires-python = ">=3.10"
