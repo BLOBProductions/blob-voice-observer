@@ -32,12 +32,18 @@ def get_model_path():
     return os.path.join(base, "vosk-model-small-en-us-0.15")
 
 
-def check_microphone():
+def check_microphone(device_index=None):
     try:
         audio = pyaudio.PyAudio()
     except Exception:
         return False
     try:
+        if device_index is not None:
+            try:
+                info = audio.get_device_info_by_index(device_index)
+                return info["maxInputChannels"] > 0
+            except Exception:
+                return False
         for i in range(audio.get_device_count()):
             info = audio.get_device_info_by_index(i)
             if info["maxInputChannels"] > 0:
@@ -70,9 +76,26 @@ def main():
 
     config = load_config(config_path)
 
+    # List detected microphones
+    try:
+        _pa = pyaudio.PyAudio()
+        print("Detected microphones:")
+        for i in range(_pa.get_device_count()):
+            info = _pa.get_device_info_by_index(i)
+            if info["maxInputChannels"] > 0:
+                print(f"  [{i}] {info['name']}")
+        _pa.terminate()
+    except Exception:
+        pass
+    print()
+
     # Check microphone
-    if not check_microphone():
-        print("ERROR: No microphone detected. Please connect a microphone and try again.")
+    mic_index = config.get("microphone_device_index")
+    if not check_microphone(mic_index):
+        if mic_index is not None:
+            print(f"ERROR: Microphone device index {mic_index} not found or has no input channels.")
+        else:
+            print("ERROR: No microphone detected. Please connect a microphone and try again.")
         input("Press Enter to exit...")
         sys.exit(1)
 
@@ -131,6 +154,7 @@ def main():
         debounce_ms=config["debounce_ms"],
         vad_aggressiveness=config["vad_aggressiveness"],
         trailing_silence_ms=config["trailing_silence_ms"],
+        device_index=config.get("microphone_device_index"),
     )
     print("Model loaded.")
     print()
