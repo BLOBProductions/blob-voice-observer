@@ -14,8 +14,9 @@ hotkeys in any Windows application.
 - **Offline.** Uses [Vosk](https://alphacephei.com/vosk/) locally. No
   cloud, no account, no network calls.
 - **Fast.** ~120 ms from end-of-speech to keystroke.
-- **Background-friendly.** Optional `target_window` mode sends keystrokes
-  to VALORANT even when it is **not** the focused window.
+- **Background-friendly by default.** Sends keystrokes to VALORANT even
+  when it is **not** the focused window (via the `target_window` config,
+  which defaults to `"VALORANT"`).
 
 > ⚠️ **Disclaimer: not affiliated with Riot Games or VALORANT.** This is
 > an unofficial community tool. Use at your own risk. VALORANT's Vanguard
@@ -124,7 +125,7 @@ created automatically on first run.
   "debounce_ms": 300,
   "vad_aggressiveness": 3,
   "trailing_silence_ms": 120,
-  "target_window": ""
+  "target_window": "VALORANT"
 }
 ```
 
@@ -136,7 +137,7 @@ created automatically on first run.
 | `debounce_ms`         | Cooldown (per digit) between repeat recognitions; prevents double-fires |
 | `vad_aggressiveness`  | `0` to `3`. Higher = stricter silence detection, faster response. Lower for noisy rooms. |
 | `trailing_silence_ms` | How long to wait after speech ends before finalizing (30-2000 ms). Lower = faster but may clip short words. |
-| `target_window`       | Window title for PostMessage mode, e.g. `"VALORANT"`. Leave empty (`""`) to send to the foreground window via SendInput. |
+| `target_window`       | Window title for PostMessage mode. Defaults to `"VALORANT"` so keystrokes land without the game needing focus. Set to `""` to fall back to SendInput (foreground-only) instead. |
 
 ### Tuning presets
 
@@ -152,13 +153,13 @@ created automatically on first run.
 { "trailing_silence_ms": 150, "vad_aggressiveness": 2 }
 ```
 
-**Background mode (game does not need focus):**
+**Foreground-only (opt out of PostMessage):**
 
 ```json
-{ "target_window": "VALORANT" }
+{ "target_window": "" }
 ```
 
-> `target_window` also does a class-name prefix match, so the string
+> `target_window` does a class-name prefix match, so the default string
 > `"VALORANT"` correctly matches VALORANT's actual class
 > `VALORANTUnrealWindow` even though its title has trailing whitespace.
 

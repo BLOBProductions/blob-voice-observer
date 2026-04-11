@@ -17,7 +17,7 @@ DEFAULTS = {
     "debounce_ms": 300,
     "vad_aggressiveness": 3,
     "trailing_silence_ms": 120,
-    "target_window": "",
+    "target_window": "VALORANT",
 }
 
 VALID_MODES = {"toggle", "hold"}
