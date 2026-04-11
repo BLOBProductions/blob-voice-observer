@@ -264,9 +264,6 @@ Mic -> 30 ms frames -> webrtcvad -> SpeechDetector state machine
 
 No GPU required. Runs comfortably on any modern laptop.
 
-For the detailed latency budget, see
-[`docs/LATENCY-RESEARCH.md`](docs/LATENCY-RESEARCH.md).
-
 ---
 
 ## Project Structure
@@ -281,7 +278,6 @@ src/
   hotkey_manager.py       # Toggle / hold hotkey binding
 
 tests/                    # Pytest suite for each src/ module
-docs/                     # Background notes and latency research
 third_party/              # Third-party license texts (Apache 2.0)
 build.bat                 # PyInstaller build script
 pyproject.toml            # Project metadata + pytest config
