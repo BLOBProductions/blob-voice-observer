@@ -35,7 +35,15 @@ echo Copying config.json to dist...
 if exist config.json (
     copy config.json dist\BlobVoiceObserver\config.json
 ) else (
-    echo {"mode": "toggle", "toggle_key": "F6", "hold_key": "caps_lock", "debounce_ms": 300, "vad_aggressiveness": 3, "trailing_silence_ms": 120, "target_window": "VALORANT"} > dist\BlobVoiceObserver\config.json
+    echo { "mode": "toggle", > dist\BlobVoiceObserver\config.json
+    echo "toggle_key": "F6", >> dist\BlobVoiceObserver\config.json
+    echo "hold_key": "caps_lock", >> dist\BlobVoiceObserver\config.json
+    echo "debounce_ms": 300, >> dist\BlobVoiceObserver\config.json
+    echo "vad_aggressiveness": 3, >> dist\BlobVoiceObserver\config.json
+    echo "trailing_silence_ms": 120, >> dist\BlobVoiceObserver\config.json
+    echo "target_window": "VALORANT", >> dist\BlobVoiceObserver\config.json
+    echo "microphone_device_index": "0", >> dist\BlobVoiceObserver\config.json
+    echo } >> dist\BlobVoiceObserver\config.json
 )
 
 echo.

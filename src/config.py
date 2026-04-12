@@ -18,6 +18,7 @@ DEFAULTS = {
     "vad_aggressiveness": 3,
     "trailing_silence_ms": 120,
     "target_window": "VALORANT",
+    "microphone_device_index": 0,
 }
 
 VALID_MODES = {"toggle", "hold"}
@@ -90,6 +91,15 @@ def load_config(config_path="config.json"):
             config["target_window"] = val
         else:
             print(f"WARNING: Invalid target_window '{val}', must be a string")
+
+    if "microphone_device_index" in user_config:
+        val = user_config["microphone_device_index"]
+        if val is None:
+            config["microphone_device_index"] = None
+        elif isinstance(val, int) and not isinstance(val, bool) and val >= 0:
+            config["microphone_device_index"] = val
+        else:
+            print(f"WARNING: Invalid microphone_device_index '{val}', must be a non-negative integer or null")
 
     return config
 

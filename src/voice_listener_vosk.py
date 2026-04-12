@@ -78,11 +78,13 @@ class DigitDebouncer:
 
 class VoiceListener:
     def __init__(self, model_path, on_digit, debounce_ms=300,
-                 vad_aggressiveness=3, trailing_silence_ms=120):
+                 vad_aggressiveness=3, trailing_silence_ms=120,
+                 device_index=None):
         self.model = Model(model_path)
         self.on_digit = on_digit
         self.vad_aggressiveness = vad_aggressiveness
         self.trailing_silence_ms = trailing_silence_ms
+        self._device_index = device_index
         self._debouncer = DigitDebouncer(debounce_ms)
         self._stop_event = threading.Event()
         self._stop_event.set()
@@ -105,6 +107,7 @@ class VoiceListener:
                     rate=SAMPLE_RATE,
                     input=True,
                     frames_per_buffer=FRAME_SIZE,
+                    input_device_index=self._device_index,
                 )
             except Exception as e:
                 print(f"ERROR: Could not open microphone: {e}")
