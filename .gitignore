@@ -5,6 +5,8 @@ __pycache__/
 .mypy_cache/
 .ruff_cache/
 .pytest_cache/
+.pytest-tmp/
+pytest-cache-files-*/
 
 # Virtualenvs
 venv/
@@ -27,6 +29,7 @@ build/
 *.zip
 BlobVoiceObserver.zip
 BlobVoiceObserver-*.zip
+RELEASE.md
 
 # Runtime / local config
 config.json
