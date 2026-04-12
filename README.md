@@ -13,7 +13,7 @@ hotkeys in any Windows application.
 
 - **Offline.** Uses [Vosk](https://alphacephei.com/vosk/) locally. No
   cloud, no account, no network calls.
-- **Fast.** ~120 ms from end-of-speech to keystroke.
+- **Fast.** ~120 ms from end-of-speech to keystroke (Change in config.json)
 - **Background-friendly by default.** Sends keystrokes to VALORANT even
   when it is **not** the focused window (via the `target_window` config,
   which defaults to `"VALORANT"`).
