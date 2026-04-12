@@ -1,7 +1,7 @@
 # BLOB Voice Observer
 
 > A side tool by **[BLOB Productions](https://blob.productions/)**.
-> Check out BLOB at **[blob.productions](https://blob.productions/)**.
+> Come join our Discord **[here!](https://discord.gg/T4H64qT764)**.
 
 **Hands-free camera switching for VALORANT observers.** Say a digit (`"one"`
 through `"nine"`, or `"zero"`) and the tool presses the matching number key
