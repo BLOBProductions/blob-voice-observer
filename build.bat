@@ -30,6 +30,12 @@ venv\Scripts\pyinstaller ^
     --hidden-import keyboard ^
     src\main.py
 
+if errorlevel 1 (
+    echo.
+    echo ERROR: PyInstaller failed.
+    exit /b 1
+)
+
 echo.
 echo Copying config.json to dist...
 if exist config.json (

@@ -1,79 +1,23 @@
-"""Vosk hybrid voice listener, VAD + forced finalization for ~120ms latency.
+"""Vosk hybrid voice listener: VAD endpoint detection + forced Vosk finalization.
 
-Feeds every audio frame to both webrtcvad (for speech boundary detection) and
-Vosk (for streaming decode). When the VAD detects speech has ended, FinalResult()
-forces Vosk to emit its best hypothesis immediately, near-instant since Vosk has
-been decoding in real-time. This bypasses Vosk's built-in endpointer which adds
-500-800ms of silence-detection latency.
+Every audio frame is fed to both webrtcvad (speech boundary detection) and Vosk
+(streaming decode). When the VAD signals end-of-speech, FinalResult() forces an
+immediate Vosk hypothesis — ~120ms latency vs the 500-800ms from Vosk's own
+endpointer.
 """
 
 import json
-import re
 import threading
-import time
 
 import pyaudio
 import webrtcvad
 from vosk import Model, KaldiRecognizer
 
 from speech_detector import SpeechDetector, FRAME_SIZE, SAMPLE_RATE
+from recognition import GRAMMAR, extract_digits, DigitDebouncer
 
-WORD_TO_DIGIT = {
-    "zero": 0,
-    "one": 1,
-    "two": 2,
-    "three": 3,
-    "four": 4,
-    "five": 5,
-    "six": 6,
-    "seven": 7,
-    "eight": 8,
-    "nine": 9,
-}
-
-# Constrain Vosk to only recognize these words (closed grammar).
-# This dramatically improves accuracy and speed for digit-only recognition.
-# "[unk]" is Vosk's catch-all for anything outside the grammar, without it,
-# Vosk forces every utterance into one of the digit words.
-GRAMMAR = json.dumps(list(WORD_TO_DIGIT.keys()) + ["[unk]"])
-
-
-def extract_digits(text):
-    """Extract recognized digit words from text.
-
-    Returns list of (word, digit) tuples.
-    """
-    words = re.findall(r'[a-z]+', text.lower())
-    results = []
-    for word in words:
-        if word in WORD_TO_DIGIT:
-            results.append((word, WORD_TO_DIGIT[word]))
-    return results
-
-
-class DigitDebouncer:
-    """Per-digit debounce to prevent double-fires.
-
-    Uses `time.monotonic()` rather than wall-clock so NTP adjustments or
-    manual clock changes during a long session can't make the debouncer
-    either re-fire every digit (backwards jump) or eat the first digit
-    after the jump (forwards jump).
-    """
-
-    def __init__(self, debounce_ms=300):
-        self.debounce_ms = debounce_ms
-        self._last_per_digit = {}
-
-    def should_fire(self, digit):
-        now = time.monotonic() * 1000
-        last_time = self._last_per_digit.get(digit, 0)
-        if now - last_time < self.debounce_ms:
-            return False
-        self._last_per_digit[digit] = now
-        return True
-
-    def reset(self):
-        self._last_per_digit.clear()
+# Re-export so existing imports from this module keep working.
+__all__ = ["VoiceListener", "extract_digits", "DigitDebouncer"]
 
 
 class VoiceListener:
@@ -96,7 +40,7 @@ class VoiceListener:
     def start(self):
         with self._lock:
             if not self._stop_event.is_set():
-                return  # already running
+                return
             self._stop_event.clear()
             self._debouncer.reset()
             try:
@@ -111,19 +55,8 @@ class VoiceListener:
                 )
             except Exception as e:
                 print(f"ERROR: Could not open microphone: {e}")
+                self._cleanup_audio()
                 self._stop_event.set()
-                if self._stream:
-                    try:
-                        self._stream.close()
-                    except Exception:
-                        pass
-                    self._stream = None
-                if self._audio:
-                    try:
-                        self._audio.terminate()
-                    except Exception:
-                        pass
-                    self._audio = None
                 return
             self._thread = threading.Thread(target=self._listen_loop, daemon=True)
             self._thread.start()
@@ -134,36 +67,26 @@ class VoiceListener:
             if self._thread:
                 self._thread.join(timeout=2)
                 self._thread = None
-            if self._stream:
-                try:
-                    self._stream.stop_stream()
-                    self._stream.close()
-                except Exception:
-                    pass
-                self._stream = None
-            if self._audio:
-                try:
-                    self._audio.terminate()
-                except Exception:
-                    pass
-                self._audio = None
+            self._cleanup_audio()
+
+    def _cleanup_audio(self):
+        if self._stream:
+            try:
+                self._stream.stop_stream()
+                self._stream.close()
+            except Exception:
+                pass
+            self._stream = None
+        if self._audio:
+            try:
+                self._audio.terminate()
+            except Exception:
+                pass
+            self._audio = None
 
     def _listen_loop(self):
-        """Main audio loop, feeds every frame to both VAD and Vosk.
-
-        Vosk receives EVERY frame via AcceptWaveform() so it decodes
-        incrementally in real-time. But we do NOT rely on Vosk's built-in
-        endpointer (which adds 500-800ms of latency). Instead, webrtcvad
-        detects speech boundaries via SpeechDetector, and when it signals
-        speech-end we call FinalResult() to force Vosk to emit immediately.
-        FinalResult() also resets the recognizer, which is correct, each
-        utterance is independent.
-        """
         vad = webrtcvad.Vad(self.vad_aggressiveness)
-        detector = SpeechDetector(
-            vad=vad,
-            trailing_silence_ms=self.trailing_silence_ms,
-        )
+        detector = SpeechDetector(vad=vad, trailing_silence_ms=self.trailing_silence_ms)
         recognizer = KaldiRecognizer(self.model, SAMPLE_RATE, GRAMMAR)
         recognizer.SetMaxAlternatives(0)
         recognizer.SetWords(False)
@@ -172,36 +95,17 @@ class VoiceListener:
             try:
                 data = self._stream.read(FRAME_SIZE, exception_on_overflow=False)
             except Exception:
-                # A read error during a clean stop is expected, stop() closes
-                # the stream under us. Only surface it to the user if it
-                # happened while we were still meant to be listening. Either
-                # way, release the stream/audio handles here so a later
-                # start() doesn't leak them.
-                was_intentional = self._stop_event.is_set()
-                self._stop_event.set()  # allow restart via start()
-                if self._stream is not None:
-                    try:
-                        self._stream.close()
-                    except Exception:
-                        pass
-                    self._stream = None
-                if self._audio is not None:
-                    try:
-                        self._audio.terminate()
-                    except Exception:
-                        pass
-                    self._audio = None
-                if not was_intentional:
+                intentional = self._stop_event.is_set()
+                self._stop_event.set()
+                self._cleanup_audio()
+                if not intentional:
                     print("WARNING: Microphone disconnected. Toggle off and on to resume.")
                 break
 
             recognizer.AcceptWaveform(data)
-            speech_ended = detector.process_frame(data)
-
-            if speech_ended is not None:
+            if detector.process_frame(data) is not None:
                 result = json.loads(recognizer.FinalResult())
                 text = result.get("text", "").strip()
-
                 if text:
                     for word, digit in extract_digits(text):
                         if self._debouncer.should_fire(digit):
