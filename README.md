@@ -1,7 +1,7 @@
-# BLOB Voice Observer
+# Voice Observer
 
 > A side tool by **[BLOB Productions](https://blob.productions/)**.
-> Check out BLOB at **[blob.productions](https://blob.productions/)**.
+> Come join our Discord **[here!](https://discord.gg/T4H64qT764)**.
 
 **Hands-free camera switching for VALORANT observers.** Say a digit (`"one"`
 through `"nine"`, or `"zero"`) and the tool presses the matching number key
@@ -13,7 +13,7 @@ hotkeys in any Windows application.
 
 - **Offline.** Uses [Vosk](https://alphacephei.com/vosk/) locally. No
   cloud, no account, no network calls.
-- **Fast.** ~120 ms from end-of-speech to keystroke.
+- **Fast.** ~120 ms from end-of-speech to keystroke (Change in config.json)
 - **Background-friendly by default.** Sends keystrokes to VALORANT even
   when it is **not** the focused window (via the `target_window` config,
   which defaults to `"VALORANT"`).
@@ -90,9 +90,9 @@ forgiving `vad_aggressiveness` / `trailing_silence_ms`
 ## Quick Start (users, pre-built exe)
 
 1. Download the latest release zip from the
-   [Releases](https://github.com/BLOBProductions/blob-voice-observer/releases)
+   [Releases](https://github.com/BLOBProductions/voice-observer/releases)
    page and unzip it.
-2. **Right-click** `BlobVoiceObserver.exe` → **Run as administrator**
+2. **Right-click** `VoiceObserver.exe` → **Run as administrator**
    (required if VALORANT is elevated, which it usually is).
    *Windows SmartScreen may warn about an unsigned exe on first launch.
    Click **More info → Run anyway**.*
@@ -230,7 +230,7 @@ Build standalone exe:
 build.bat
 ```
 
-Output lands in `dist\BlobVoiceObserver\`. Zip that folder to
+Output lands in `dist\VoiceObserver\`. Zip that folder to
 distribute.
 
 > **Developer note:** `build.bat` deletes a broken PyInstaller contrib
@@ -301,7 +301,7 @@ config.json               # Runtime configuration (gitignored, generated on firs
 | Recognizer feels slow | Lower `trailing_silence_ms` toward `90`. Confirm mic effects are off. |
 | First word after unpausing gets clipped | Raise `trailing_silence_ms` slightly, or raise `pre_pad_ms` (source only). |
 | Tool stops responding after unplugging mic | Toggle the hotkey off then back on to reinitialize the audio stream. |
-| Antivirus quarantines the exe | Add `BlobVoiceObserver.exe` to exclusions. Win32 `SendInput` is a common false-positive trigger. |
+| Antivirus quarantines the exe | Add `VoiceObserver.exe` to exclusions. Win32 `SendInput` is a common false-positive trigger. |
 | `target_window` says "NOT FOUND" | The window hasn't been created yet; start VALORANT, then press the hotkey. The tool retries on each keystroke. |
 
 ---

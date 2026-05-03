@@ -1,5 +1,5 @@
 @echo off
-echo === Building BLOB Voice Observer ===
+echo === Building Voice Observer ===
 echo.
 
 if not exist "vosk-model-small-en-us-0.15" (
@@ -20,8 +20,8 @@ for /f "delims=" %%F in ('dir /s /b venv\Lib\site-packages\_pyinstaller_hooks_co
 echo Running PyInstaller...
 venv\Scripts\pyinstaller ^
     --noconfirm ^
-    --onefile ^
-    --name BlobVoiceObserver ^
+    --onedir ^
+    --name VoiceObserver ^
     --add-data "vosk-model-small-en-us-0.15;vosk-model-small-en-us-0.15" ^
     --collect-all vosk ^
     --collect-all pyaudio ^
@@ -39,21 +39,31 @@ if errorlevel 1 (
 echo.
 echo Copying config.json to dist...
 if exist config.json (
-    copy config.json dist\BlobVoiceObserver.exe.config.json >nul
-    copy config.json dist\config.json >nul
+    copy config.json dist\VoiceObserver\config.json
 ) else (
-    venv\Scripts\python -c "import json; json.dump({'mode':'toggle','toggle_key':'F6','hold_key':'caps_lock','debounce_ms':300,'vad_aggressiveness':3,'trailing_silence_ms':120,'target_window':'VALORANT','microphone_device_index':0}, open('dist\\config.json','w'), indent=2)"
+    echo { "mode": "toggle", > dist\VoiceObserver\config.json
+    echo "toggle_key": "F6", >> dist\VoiceObserver\config.json
+    echo "hold_key": "caps_lock", >> dist\VoiceObserver\config.json
+    echo "debounce_ms": 300, >> dist\VoiceObserver\config.json
+    echo "vad_aggressiveness": 3, >> dist\VoiceObserver\config.json
+    echo "trailing_silence_ms": 120, >> dist\VoiceObserver\config.json
+    echo "target_window": "VALORANT", >> dist\VoiceObserver\config.json
+    echo "microphone_device_index": "0", >> dist\VoiceObserver\config.json
+    echo } >> dist\VoiceObserver\config.json
 )
 
 echo.
 echo Copying LICENSE, NOTICE, and third-party license texts to dist...
-copy LICENSE dist\LICENSE >nul
-copy NOTICE  dist\NOTICE  >nul
-if not exist dist\third_party mkdir dist\third_party
-xcopy /Y third_party\*.txt dist\third_party\ >nul
+REM Apache 2.0 and MIT both require redistributed binaries to ship the
+REM license and attribution alongside. These files must travel with the
+REM exe, so we copy everything in third_party\ into the dist folder.
+copy LICENSE dist\VoiceObserver\LICENSE
+copy NOTICE  dist\VoiceObserver\NOTICE
+if not exist dist\VoiceObserver\third_party mkdir dist\VoiceObserver\third_party
+xcopy /Y third_party\*.txt dist\VoiceObserver\third_party\
 
 echo.
 echo === Build complete ===
-echo Output: dist\BlobVoiceObserver.exe
+echo Output: dist\VoiceObserver\VoiceObserver.exe
 echo.
-echo To distribute: zip the dist\ folder (exe + config.json + LICENSE + NOTICE + third_party\).
+echo To distribute: zip the dist\VoiceObserver folder.
