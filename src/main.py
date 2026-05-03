@@ -42,16 +42,28 @@ def _list_microphones():
     try:
         pa = pyaudio.PyAudio()
         try:
-            mics = [
-                f"  [{i}] {pa.get_device_info_by_index(i)['name']}"
-                for i in range(pa.get_device_count())
-                if pa.get_device_info_by_index(i)["maxInputChannels"] > 0
-            ]
+            # PyAudio enumerates the same hardware once per audio API (MME,
+            # DirectSound, WASAPI), producing duplicate entries. MME also
+            # truncates names to ~31 chars. Strategy: collect all entries,
+            # fix mojibake, then for each name keep the longest version seen
+            # (which is the un-truncated one from WASAPI/DS), deduplicated by
+            # that longest name's first 31 chars as a stable key.
+            entries = {}  # key=first-31-chars → (best_name, lowest_index)
+            for i in range(pa.get_device_count()):
+                info = pa.get_device_info_by_index(i)
+                if info["maxInputChannels"] <= 0:
+                    continue
+                name = info["name"].encode("cp1252", errors="replace").decode("utf-8", errors="replace")
+                key = name[:31].lower()
+                existing = entries.get(key)
+                if existing is None or len(name) > len(existing[0]):
+                    entries[key] = (name, existing[1] if existing else i)
         finally:
             pa.terminate()
-        if mics:
+        if entries:
             print("Detected microphones:")
-            print("\n".join(mics))
+            for name, idx in sorted(entries.values(), key=lambda x: x[1]):
+                print(f"  [{idx:>3}] {name}")
     except Exception:
         pass
 
