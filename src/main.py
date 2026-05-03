@@ -1,143 +1,97 @@
-"""BLOB Voice Observer, entry point.
+"""BLOB Voice Observer — entry point.
 
 Startup sequence:
-1. Check admin privileges (warn if not elevated, VALORANT may ignore keystrokes)
+1. Check admin privileges (VALORANT may silently block keystrokes if elevated)
 2. Load config.json (creates default if missing)
-3. Check for a connected microphone
-4. Load the Vosk speech model (takes 1-2 seconds)
+3. List and validate microphone
+4. Load the Vosk speech model
 5. Register hotkey (toggle or hold mode)
-6. Enter main loop, Ctrl+C to exit
+6. Enter main loop; Ctrl+C to exit
 """
 
 import ctypes
-import sys
 import os
+import sys
 import threading
 import time
 
 import pyaudio
 
 from config import load_config
-from key_sender import send_key, send_key_to_window, find_window
-from voice_listener_vosk import VoiceListener
 from hotkey_manager import HotkeyManager
+from key_sender import find_window, send_key, send_key_to_window
+from voice_listener_vosk import VoiceListener
 
 
-def get_model_path():
-    if getattr(sys, "frozen", False):
-        base = sys._MEIPASS
-    else:
-        base = os.path.join(os.path.dirname(os.path.abspath(__file__)), "..")
+def _config_path():
+    base = os.path.dirname(sys.executable if getattr(sys, "frozen", False)
+                           else os.path.abspath(__file__))
+    if not getattr(sys, "frozen", False):
+        base = os.path.join(base, "..")
+    return os.path.join(base, "config.json")
 
+
+def _model_path():
+    base = sys._MEIPASS if getattr(sys, "frozen", False) else os.path.join(
+        os.path.dirname(os.path.abspath(__file__)), ".."
+    )
     return os.path.join(base, "vosk-model-small-en-us-0.15")
 
 
-def check_microphone(device_index=None):
+def _list_microphones():
     try:
-        audio = pyaudio.PyAudio()
-    except Exception:
-        return False
-    try:
-        if device_index is not None:
-            try:
-                info = audio.get_device_info_by_index(device_index)
-                return info["maxInputChannels"] > 0
-            except Exception:
-                return False
-        for i in range(audio.get_device_count()):
-            info = audio.get_device_info_by_index(i)
-            if info["maxInputChannels"] > 0:
-                return True
-        return False
-    finally:
-        audio.terminate()
-
-
-def main():
-    print("=== BLOB Voice Observer ===")
-    print()
-
-    # Admin check, SendInput is silently blocked by Windows UIPI if VALORANT
-    # runs elevated but this tool does not. Only meaningful on Windows; the
-    # sys.platform guard lets contributors run main.py on other OSes to poke
-    # at config/parsing code without hitting an AttributeError on windll.
-    if sys.platform == "win32" and not ctypes.windll.shell32.IsUserAnAdmin():
-        print("WARNING: Not running as Administrator. Keystrokes may not reach VALORANT.")
-        print("Right-click the exe and select 'Run as administrator'.")
-        print()
-
-    # Resolve config path
-    if getattr(sys, "frozen", False):
-        config_path = os.path.join(os.path.dirname(sys.executable), "config.json")
-    else:
-        config_path = os.path.join(
-            os.path.dirname(os.path.abspath(__file__)), "..", "config.json"
-        )
-
-    config = load_config(config_path)
-
-    # List detected microphones
-    try:
-        _pa = pyaudio.PyAudio()
-        print("Detected microphones:")
-        for i in range(_pa.get_device_count()):
-            info = _pa.get_device_info_by_index(i)
-            if info["maxInputChannels"] > 0:
-                print(f"  [{i}] {info['name']}")
-        _pa.terminate()
+        pa = pyaudio.PyAudio()
+        try:
+            mics = [
+                f"  [{i}] {pa.get_device_info_by_index(i)['name']}"
+                for i in range(pa.get_device_count())
+                if pa.get_device_info_by_index(i)["maxInputChannels"] > 0
+            ]
+        finally:
+            pa.terminate()
+        if mics:
+            print("Detected microphones:")
+            print("\n".join(mics))
     except Exception:
         pass
-    print()
 
-    # Check microphone
-    mic_index = config.get("microphone_device_index")
-    if not check_microphone(mic_index):
-        if mic_index is not None:
-            print(f"ERROR: Microphone device index {mic_index} not found or has no input channels.")
-        else:
-            print("ERROR: No microphone detected. Please connect a microphone and try again.")
-        input("Press Enter to exit...")
-        sys.exit(1)
 
-    # Check model
-    model_path = get_model_path()
-    if not os.path.exists(model_path):
-        print(f"ERROR: Vosk model not found at {model_path}")
-        print("Download vosk-model-small-en-us-0.15 from https://alphacephei.com/vosk/models")
-        input("Press Enter to exit...")
-        sys.exit(1)
+def _check_microphone(device_index):
+    try:
+        pa = pyaudio.PyAudio()
+        try:
+            if device_index is not None:
+                info = pa.get_device_info_by_index(device_index)
+                return info["maxInputChannels"] > 0
+            return any(
+                pa.get_device_info_by_index(i)["maxInputChannels"] > 0
+                for i in range(pa.get_device_count())
+            )
+        except Exception:
+            return False
+        finally:
+            pa.terminate()
+    except Exception:
+        return False
 
-    # Display config
-    active_key = config["toggle_key"] if config["mode"] == "toggle" else config["hold_key"]
-    print(f"Mode: {config['mode']} ({active_key})")
 
-    target_title = config.get("target_window", "")
-    if target_title:
-        hwnd = find_window(target_title)
-        if hwnd:
-            print(f"Target window: \"{target_title}\" (PostMessage mode), FOUND (hwnd={hwnd})")
-        else:
-            print(f"Target window: \"{target_title}\" (PostMessage mode), NOT FOUND (will retry on each keystroke)")
-    else:
-        print("Target window: foreground (SendInput mode)")
+class KeystrokeDispatcher:
+    """Owns the on_digit callback, window handle cache, and retry logic."""
 
-    print("Status: PAUSED")
-    print()
+    def __init__(self, target_title):
+        self._target = target_title
+        self._hwnd = None
 
-    # Voice listener callback, cache the target HWND to avoid
-    # per-keystroke EnumWindows lookups.
-    cached_hwnd = [None]  # mutable container for nonlocal access
-
-    def on_digit(digit, word):
-        if target_title:
-            if cached_hwnd[0] is None:
-                cached_hwnd[0] = find_window(target_title)
-            if not cached_hwnd[0]:
-                print(f'  WARNING: Heard "{word}" but window "{target_title}" not found')
+    def __call__(self, digit, word):
+        if self._target:
+            if self._hwnd is None:
+                self._hwnd = find_window(self._target)
+            if not self._hwnd:
+                print(f'  WARNING: Heard "{word}" but window "{self._target}" not found')
                 return
-            success = send_key_to_window(digit, cached_hwnd[0])
+            success = send_key_to_window(digit, self._hwnd)
             if not success:
-                cached_hwnd[0] = None  # invalidate, retry next keystroke
+                self._hwnd = None  # invalidate; retry on next keystroke
         else:
             success = send_key(digit)
 
@@ -146,31 +100,67 @@ def main():
         else:
             print(f'  WARNING: Heard "{word}" but keystroke {digit} was BLOCKED (run as admin?)')
 
-    # Initialize voice listener (model loaded here, takes a moment)
+
+def main():
+    print("=== BLOB Voice Observer ===\n")
+
+    if sys.platform == "win32" and not ctypes.windll.shell32.IsUserAnAdmin():
+        print("WARNING: Not running as Administrator. Keystrokes may not reach VALORANT.")
+        print("Right-click the exe and select 'Run as administrator'.\n")
+
+    config = load_config(_config_path())
+
+    _list_microphones()
+    print()
+
+    mic_index = config.get("microphone_device_index")
+    if not _check_microphone(mic_index):
+        if mic_index is not None:
+            print(f"ERROR: Microphone device index {mic_index} not found or has no input channels.")
+        else:
+            print("ERROR: No microphone detected. Please connect a microphone and try again.")
+        input("Press Enter to exit...")
+        sys.exit(1)
+
+    model_path = _model_path()
+    if not os.path.exists(model_path):
+        print(f"ERROR: Vosk model not found at {model_path}")
+        print("Download vosk-model-small-en-us-0.15 from https://alphacephei.com/vosk/models")
+        input("Press Enter to exit...")
+        sys.exit(1)
+
+    active_key = config["toggle_key"] if config["mode"] == "toggle" else config["hold_key"]
+    print(f"Mode: {config['mode']} ({active_key})")
+
+    target_title = config.get("target_window", "")
+    if target_title:
+        hwnd = find_window(target_title)
+        status = f"FOUND (hwnd={hwnd})" if hwnd else "NOT FOUND (will retry on each keystroke)"
+        print(f'Target window: "{target_title}" (PostMessage mode), {status}')
+    else:
+        print("Target window: foreground (SendInput mode)")
+
+    print("Status: PAUSED\n")
+
     print("Loading speech model...")
     listener = VoiceListener(
         model_path=model_path,
-        on_digit=on_digit,
+        on_digit=KeystrokeDispatcher(target_title),
         debounce_ms=config["debounce_ms"],
         vad_aggressiveness=config["vad_aggressiveness"],
         trailing_silence_ms=config["trailing_silence_ms"],
         device_index=config.get("microphone_device_index"),
     )
-    print("Model loaded.")
-    print()
+    print("Model loaded.\n")
 
-    # Hotkey state change callback, dispatch start/stop off the keyboard hook
-    # thread to avoid blocking Windows' hook message pump (which can cause
-    # Windows to kill the hook if it doesn't return promptly).
+    # Dispatch start/stop off the keyboard hook thread to avoid blocking
+    # Windows' hook message pump (which can kill the hook if it stalls).
     def on_state_change(active):
-        if active:
-            print(f"[{active_key}] Status: LISTENING")
-            threading.Thread(target=listener.start, daemon=True).start()
-        else:
-            print(f"[{active_key}] Status: PAUSED")
-            threading.Thread(target=listener.stop, daemon=True).start()
+        label = "LISTENING" if active else "PAUSED"
+        print(f"[{active_key}] Status: {label}")
+        target = listener.start if active else listener.stop
+        threading.Thread(target=target, daemon=True).start()
 
-    # Start hotkey manager
     hotkey_mgr = HotkeyManager(
         mode=config["mode"],
         toggle_key=config["toggle_key"],
@@ -179,9 +169,9 @@ def main():
     )
     hotkey_mgr.start()
 
-    print(f"Press {active_key} to {'toggle listening' if config['mode'] == 'toggle' else 'hold and speak'}.")
-    print("Press Ctrl+C to exit.")
-    print()
+    verb = "toggle listening" if config["mode"] == "toggle" else "hold and speak"
+    print(f"Press {active_key} to {verb}.")
+    print("Press Ctrl+C to exit.\n")
 
     try:
         while True:

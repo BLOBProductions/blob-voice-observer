@@ -20,7 +20,7 @@ for /f "delims=" %%F in ('dir /s /b venv\Lib\site-packages\_pyinstaller_hooks_co
 echo Running PyInstaller...
 venv\Scripts\pyinstaller ^
     --noconfirm ^
-    --onedir ^
+    --onefile ^
     --name BlobVoiceObserver ^
     --add-data "vosk-model-small-en-us-0.15;vosk-model-small-en-us-0.15" ^
     --collect-all vosk ^
@@ -30,35 +30,30 @@ venv\Scripts\pyinstaller ^
     --hidden-import keyboard ^
     src\main.py
 
+if errorlevel 1 (
+    echo.
+    echo ERROR: PyInstaller failed.
+    exit /b 1
+)
+
 echo.
 echo Copying config.json to dist...
 if exist config.json (
-    copy config.json dist\BlobVoiceObserver\config.json
+    copy config.json dist\BlobVoiceObserver.exe.config.json >nul
+    copy config.json dist\config.json >nul
 ) else (
-    echo { > dist\BlobVoiceObserver\config.json
-    echo   "mode": "toggle", >> dist\BlobVoiceObserver\config.json
-    echo   "toggle_key": "F6", >> dist\BlobVoiceObserver\config.json
-    echo   "hold_key": "caps_lock", >> dist\BlobVoiceObserver\config.json
-    echo   "debounce_ms": 300, >> dist\BlobVoiceObserver\config.json
-    echo   "vad_aggressiveness": 3, >> dist\BlobVoiceObserver\config.json
-    echo   "trailing_silence_ms": 120, >> dist\BlobVoiceObserver\config.json
-    echo   "target_window": "VALORANT", >> dist\BlobVoiceObserver\config.json
-    echo   "microphone_device_index": "0" >> dist\BlobVoiceObserver\config.json
-    echo } >> dist\BlobVoiceObserver\config.json
+    venv\Scripts\python -c "import json; json.dump({'mode':'toggle','toggle_key':'F6','hold_key':'caps_lock','debounce_ms':300,'vad_aggressiveness':3,'trailing_silence_ms':120,'target_window':'VALORANT','microphone_device_index':0}, open('dist\\config.json','w'), indent=2)"
 )
 
 echo.
 echo Copying LICENSE, NOTICE, and third-party license texts to dist...
-REM Apache 2.0 and MIT both require redistributed binaries to ship the
-REM license and attribution alongside. These files must travel with the
-REM exe, so we copy everything in third_party\ into the dist folder.
-copy LICENSE dist\BlobVoiceObserver\LICENSE
-copy NOTICE  dist\BlobVoiceObserver\NOTICE
-if not exist dist\BlobVoiceObserver\third_party mkdir dist\BlobVoiceObserver\third_party
-xcopy /Y third_party\*.txt dist\BlobVoiceObserver\third_party\
+copy LICENSE dist\LICENSE >nul
+copy NOTICE  dist\NOTICE  >nul
+if not exist dist\third_party mkdir dist\third_party
+xcopy /Y third_party\*.txt dist\third_party\ >nul
 
 echo.
 echo === Build complete ===
-echo Output: dist\BlobVoiceObserver\BlobVoiceObserver.exe
+echo Output: dist\BlobVoiceObserver.exe
 echo.
-echo To distribute: zip the dist\BlobVoiceObserver folder.
+echo To distribute: zip the dist\ folder (exe + config.json + LICENSE + NOTICE + third_party\).

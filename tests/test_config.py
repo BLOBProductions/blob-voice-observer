@@ -23,6 +23,7 @@ def test_valid_config_loaded(tmp_path):
         "vad_aggressiveness": 3,
         "trailing_silence_ms": 120,
         "target_window": "",
+        "microphone_device_index": 0,
     }
     config_path.write_text(json.dumps(custom))
     config = load_config(str(config_path))
