@@ -4,9 +4,10 @@ Startup sequence:
 1. Check admin privileges (VALORANT may silently block keystrokes if elevated)
 2. Load config.json (creates default if missing)
 3. List and validate microphone
-4. Load the Vosk speech model
-5. Register hotkey (toggle or hold mode)
-6. Enter main loop; Ctrl+C to exit
+4. Resolve key_map to VK codes
+5. Load the Vosk speech model
+6. Register hotkey (toggle or hold mode)
+7. Enter main loop; Ctrl+C to exit
 """
 
 import ctypes
@@ -19,7 +20,8 @@ import pyaudio
 
 from config import load_config
 from hotkey_manager import HotkeyManager
-from key_sender import find_window, send_key, send_key_to_window
+from key_sender import find_window, resolve_vk, send_key, send_key_to_window
+from recognition import WORD_TO_DIGIT
 from voice_listener_vosk import VoiceListener
 
 
@@ -87,30 +89,55 @@ def _check_microphone(device_index):
         return False
 
 
-class KeystrokeDispatcher:
-    """Owns the on_digit callback, window handle cache, and retry logic."""
+def _resolve_key_map(key_map: dict) -> dict[int, tuple[int, str]]:
+    """Resolve word→key_name map to digit→(vk_code, key_name).
 
-    def __init__(self, target_title):
+    Warns at startup for any key name that cannot be resolved, then omits
+    that digit from the active map so misfires are silent rather than noisy.
+    """
+    resolved = {}
+    for word, key_name in key_map.items():
+        digit = WORD_TO_DIGIT.get(word)
+        if digit is None:
+            continue
+        vk = resolve_vk(key_name)
+        if vk is None:
+            print(f"WARNING: key_map['{word}'] = '{key_name}' could not be resolved to a VK code, digit {digit} will be skipped")
+            continue
+        resolved[digit] = (vk, key_name)
+    return resolved
+
+
+class KeystrokeDispatcher:
+    """Owns the on_digit callback, VK map, window handle cache, and retry logic."""
+
+    def __init__(self, target_title: str, vk_map: dict[int, tuple[int, str]]):
         self._target = target_title
+        self._vk_map = vk_map  # digit → (vk_code, key_name)
         self._hwnd = None
 
-    def __call__(self, digit, word):
+    def __call__(self, digit: int, word: str):
+        entry = self._vk_map.get(digit)
+        if entry is None:
+            return
+        vk, key_name = entry
+
         if self._target:
             if self._hwnd is None:
                 self._hwnd = find_window(self._target)
             if not self._hwnd:
                 print(f'  WARNING: Heard "{word}" but window "{self._target}" not found')
                 return
-            success = send_key_to_window(digit, self._hwnd)
+            success = send_key_to_window(vk, self._hwnd)
             if not success:
                 self._hwnd = None  # invalidate; retry on next keystroke
         else:
-            success = send_key(digit)
+            success = send_key(vk)
 
         if success:
-            print(f'  Heard: "{word}" -> Sent: {digit}')
+            print(f'  Heard: "{word}" -> Sent: {key_name}')
         else:
-            print(f'  WARNING: Heard "{word}" but keystroke {digit} was BLOCKED (run as admin?)')
+            print(f'  WARNING: Heard "{word}" but keystroke "{key_name}" was BLOCKED (run as admin?)')
 
 
 def main():
@@ -141,6 +168,12 @@ def main():
         input("Press Enter to exit...")
         sys.exit(1)
 
+    vk_map = _resolve_key_map(config["key_map"])
+    if not vk_map:
+        print("ERROR: key_map resolved to nothing. Check your config.json key_map entries.")
+        input("Press Enter to exit...")
+        sys.exit(1)
+
     active_key = config["toggle_key"] if config["mode"] == "toggle" else config["hold_key"]
     print(f"Mode: {config['mode']} ({active_key})")
 
@@ -152,12 +185,18 @@ def main():
     else:
         print("Target window: foreground (SendInput mode)")
 
+    print("Key map:")
+    for digit in sorted(vk_map):
+        _, key_name = vk_map[digit]
+        word = next(w for w, d in WORD_TO_DIGIT.items() if d == digit)
+        print(f"  {word:>5} -> {key_name}")
+
     print("Status: PAUSED\n")
 
     print("Loading speech model...")
     listener = VoiceListener(
         model_path=model_path,
-        on_digit=KeystrokeDispatcher(target_title),
+        on_digit=KeystrokeDispatcher(target_title, vk_map),
         debounce_ms=config["debounce_ms"],
         vad_aggressiveness=config["vad_aggressiveness"],
         trailing_silence_ms=config["trailing_silence_ms"],

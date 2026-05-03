@@ -19,6 +19,24 @@ DEFAULTS = {
     "trailing_silence_ms": 120,
     "target_window": "VALORANT",
     "microphone_device_index": 0,
+    # Maps each spoken digit word to the key that will be pressed.
+    # Values are key names resolved by key_sender.resolve_vk at startup:
+    #   - raw VK hex:      "0x30"-"0x39"  (number row, layout-independent)
+    #   - digits/letters:  "0"-"9", "a"-"z"
+    #   - AZERTY row:      "&", "é", '"', "'", "(", "-", "è", "_", "ç", "à"
+    #   - named keys:      "f1"-"f12", "space", "enter", "num0"-"num9", …
+    "key_map": {
+        "zero":  "0x30",
+        "one":   "0x31",
+        "two":   "0x32",
+        "three": "0x33",
+        "four":  "0x34",
+        "five":  "0x35",
+        "six":   "0x36",
+        "seven": "0x37",
+        "eight": "0x38",
+        "nine":  "0x39",
+    },
 }
 
 _VALID_MODES = {"toggle", "hold"}
@@ -80,6 +98,21 @@ def _validate(key, val):
             return val, None
         return default, f"Invalid microphone_device_index '{val}', must be a non-negative integer or null"
 
+    if key == "key_map":
+        if not isinstance(val, dict):
+            return default, "key_map must be a JSON object"
+        merged = dict(DEFAULTS["key_map"])
+        valid_words = set(merged.keys())
+        for word, binding in val.items():
+            if word not in valid_words:
+                print(f"WARNING: key_map entry '{word}' is not a digit word, ignored")
+                continue
+            if not isinstance(binding, str) or not binding.strip():
+                print(f"WARNING: key_map['{word}'] = {binding!r} is not a non-empty string, using default")
+                continue
+            merged[word] = binding
+        return merged, None
+
     return val, None  # unknown key: pass through
 
 
@@ -104,6 +137,13 @@ def load_config(config_path="config.json"):
         if warning:
             print(f"WARNING: {warning}, using default {DEFAULTS[key]!r}")
         config[key] = value
+
+    # Back-fill any keys added to DEFAULTS after the file was first created.
+    new_keys = [k for k in DEFAULTS if k not in user_config]
+    if new_keys:
+        for k in new_keys:
+            print(f"Config: added missing key '{k}' with default value")
+        _save_config(config, config_path)
 
     return config
 

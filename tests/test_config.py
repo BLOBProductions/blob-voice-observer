@@ -24,6 +24,10 @@ def test_valid_config_loaded(tmp_path):
         "trailing_silence_ms": 120,
         "target_window": "",
         "microphone_device_index": 0,
+        "key_map": {
+            "zero": "0x30", "one": "0x31", "two": "0x32", "three": "0x33", "four": "0x34",
+            "five": "0x35", "six": "0x36", "seven": "0x37", "eight": "0x38", "nine": "0x39",
+        },
     }
     config_path.write_text(json.dumps(custom))
     config = load_config(str(config_path))
