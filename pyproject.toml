@@ -1,6 +1,6 @@
 [project]
-name = "blob-voice-observer"
-version = "0.1.1"
+name = "voice-observer"
+version = "0.1.2"
 description = "Hands-free voice-triggered digit keystrokes for VALORANT observers (Windows, offline)."
 readme = "README.md"
 requires-python = ">=3.10"
@@ -38,9 +38,10 @@ dev = [
 
 [project.urls]
 Homepage = "https://blob.productions/"
-Repository = "https://github.com/BLOBProductions/blob-voice-observer"
-Issues = "https://github.com/BLOBProductions/blob-voice-observer/issues"
+Repository = "https://github.com/BLOBProductions/voice-observer"
+Issues = "https://github.com/BLOBProductions/voice-observer/issues"
 
 [tool.pytest.ini_options]
 pythonpath = ["src"]
 testpaths = ["tests"]
+addopts = "-p no:cacheprovider"

@@ -1,4 +1,4 @@
-# Runtime dependencies for BLOB Voice Observer.
+# Runtime dependencies for Voice Observer.
 # Install with: pip install -r requirements.txt
 
 # Offline speech recognition engine (Kaldi-based). The small English

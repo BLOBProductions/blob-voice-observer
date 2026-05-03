@@ -1,4 +1,4 @@
-"""BLOB Voice Observer — entry point.
+"""Voice Observer, entry point.
 
 Startup sequence:
 1. Check admin privileges (VALORANT may silently block keystrokes if elevated)
@@ -114,7 +114,8 @@ class KeystrokeDispatcher:
 
 
 def main():
-    print("=== BLOB Voice Observer ===\n")
+    print("=== Voice Observer ===")
+    print()
 
     if sys.platform == "win32" and not ctypes.windll.shell32.IsUserAnAdmin():
         print("WARNING: Not running as Administrator. Keystrokes may not reach VALORANT.")

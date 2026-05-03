@@ -1,4 +1,4 @@
-"""Config loader for BLOB Voice Observer.
+"""Config loader for Voice Observer.
 
 Reads `config.json` next to the executable (or project root when running from
 source). Missing keys fall back to DEFAULTS; invalid values log a warning and
