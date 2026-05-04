@@ -1,8 +1,8 @@
 """Config loader for Voice Observer.
 
-Reads `config.json` next to the executable (or project root when running
-from source). Missing keys fall back to DEFAULTS, invalid values log a
-warning and fall back too, the program never hard-fails on a bad config.
+Reads `config.json` next to the executable (or project root when running from
+source). Missing keys fall back to DEFAULTS; invalid values log a warning and
+fall back too — the program never hard-fails on a bad config.
 
 If `config.json` does not exist, a default file is created on first run.
 """
@@ -19,15 +19,101 @@ DEFAULTS = {
     "trailing_silence_ms": 120,
     "target_window": "VALORANT",
     "microphone_device_index": 0,
+    # Maps each spoken digit word to the key that will be pressed.
+    # Values are key names resolved by key_sender.resolve_vk at startup:
+    #   - raw VK hex:      "0x30"-"0x39"  (number row, layout-independent)
+    #   - digits/letters:  "0"-"9", "a"-"z"
+    #   - AZERTY row:      "&", "é", '"', "'", "(", "-", "è", "_", "ç", "à"
+    #   - named keys:      "f1"-"f12", "space", "enter", "num0"-"num9", …
+    "key_map": {
+        "zero":  "0x30",
+        "one":   "0x31",
+        "two":   "0x32",
+        "three": "0x33",
+        "four":  "0x34",
+        "five":  "0x35",
+        "six":   "0x36",
+        "seven": "0x37",
+        "eight": "0x38",
+        "nine":  "0x39",
+    },
 }
 
-VALID_MODES = {"toggle", "hold"}
+_VALID_MODES = {"toggle", "hold"}
 
 
-def _is_real_number(val):
-    # bool is a subclass of int in Python, so isinstance(True, int) is True.
-    # Reject it explicitly, True/False should never satisfy numeric ranges.
+def _is_number(val):
+    # bool is a subclass of int; reject it so True/False don't satisfy ranges.
     return isinstance(val, (int, float)) and not isinstance(val, bool)
+
+
+def _is_int(val):
+    return isinstance(val, int) and not isinstance(val, bool)
+
+
+def _validate(key, val):
+    """Return (value, error_message) for a single config key."""
+    default = DEFAULTS[key]
+
+    if key == "mode":
+        if val in _VALID_MODES:
+            return val, None
+        return default, f"Invalid mode '{val}'"
+
+    if key in ("toggle_key", "hold_key"):
+        if isinstance(val, str) and val:
+            return val, None
+        return default, f"Invalid {key}"
+
+    if key == "debounce_ms":
+        if _is_number(val) and val >= 0:
+            return int(val), None
+        return default, f"Invalid debounce_ms"
+
+    if key == "vad_aggressiveness":
+        if _is_int(val) and 0 <= val <= 3:
+            return val, None
+        return default, f"Invalid vad_aggressiveness '{val}'"
+
+    if key == "trailing_silence_ms":
+        if not _is_number(val):
+            return default, f"Invalid trailing_silence_ms '{val}'"
+        if val < 0:
+            return default, f"Invalid trailing_silence_ms '{val}'"
+        if val < 30:
+            return 30, f"trailing_silence_ms {val} below minimum, clamped to 30"
+        if val > 2000:
+            return 2000, f"trailing_silence_ms {val} above maximum, clamped to 2000"
+        return int(val), None
+
+    if key == "target_window":
+        if isinstance(val, str):
+            return val, None
+        return default, f"Invalid target_window '{val}', must be a string"
+
+    if key == "microphone_device_index":
+        if val is None:
+            return None, None
+        if _is_int(val) and val >= 0:
+            return val, None
+        return default, f"Invalid microphone_device_index '{val}', must be a non-negative integer or null"
+
+    if key == "key_map":
+        if not isinstance(val, dict):
+            return default, "key_map must be a JSON object"
+        merged = dict(DEFAULTS["key_map"])
+        valid_words = set(merged.keys())
+        for word, binding in val.items():
+            if word not in valid_words:
+                print(f"WARNING: key_map entry '{word}' is not a digit word, ignored")
+                continue
+            if not isinstance(binding, str) or not binding.strip():
+                print(f"WARNING: key_map['{word}'] = {binding!r} is not a non-empty string, using default")
+                continue
+            merged[word] = binding
+        return merged, None
+
+    return val, None  # unknown key: pass through
 
 
 def load_config(config_path="config.json"):
@@ -44,69 +130,26 @@ def load_config(config_path="config.json"):
         return dict(DEFAULTS)
 
     config = dict(DEFAULTS)
+    for key in DEFAULTS:
+        if key not in user_config:
+            continue
+        value, warning = _validate(key, user_config[key])
+        if warning:
+            print(f"WARNING: {warning}, using default {DEFAULTS[key]!r}")
+        config[key] = value
 
-    if "mode" in user_config:
-        if user_config["mode"] in VALID_MODES:
-            config["mode"] = user_config["mode"]
-        else:
-            print(f"WARNING: Invalid mode '{user_config['mode']}', using default '{DEFAULTS['mode']}'")
-
-    for key in ("toggle_key", "hold_key"):
-        if key in user_config:
-            if isinstance(user_config[key], str) and user_config[key]:
-                config[key] = user_config[key]
-            else:
-                print(f"WARNING: Invalid {key}, using default '{DEFAULTS[key]}'")
-
-    if "debounce_ms" in user_config:
-        val = user_config["debounce_ms"]
-        if _is_real_number(val) and val >= 0:
-            config["debounce_ms"] = int(val)
-        else:
-            print(f"WARNING: Invalid debounce_ms, using default {DEFAULTS['debounce_ms']}")
-
-    if "vad_aggressiveness" in user_config:
-        val = user_config["vad_aggressiveness"]
-        if isinstance(val, int) and not isinstance(val, bool) and 0 <= val <= 3:
-            config["vad_aggressiveness"] = val
-        else:
-            print(f"WARNING: Invalid vad_aggressiveness '{val}', using default {DEFAULTS['vad_aggressiveness']}")
-
-    if "trailing_silence_ms" in user_config:
-        val = user_config["trailing_silence_ms"]
-        if _is_real_number(val) and 30 <= val <= 2000:
-            config["trailing_silence_ms"] = int(val)
-        elif _is_real_number(val) and 0 < val < 30:
-            config["trailing_silence_ms"] = 30
-            print(f"WARNING: trailing_silence_ms {val} below minimum, clamped to 30")
-        elif _is_real_number(val) and val > 2000:
-            config["trailing_silence_ms"] = 2000
-            print(f"WARNING: trailing_silence_ms {val} above maximum, clamped to 2000")
-        else:
-            print(f"WARNING: Invalid trailing_silence_ms '{val}', using default {DEFAULTS['trailing_silence_ms']}")
-
-    if "target_window" in user_config:
-        val = user_config["target_window"]
-        if isinstance(val, str):
-            config["target_window"] = val
-        else:
-            print(f"WARNING: Invalid target_window '{val}', must be a string")
-
-    if "microphone_device_index" in user_config:
-        val = user_config["microphone_device_index"]
-        if val is None:
-            config["microphone_device_index"] = None
-        elif isinstance(val, int) and not isinstance(val, bool) and val >= 0:
-            config["microphone_device_index"] = val
-        else:
-            print(f"WARNING: Invalid microphone_device_index '{val}', must be a non-negative integer or null")
+    # Back-fill any keys added to DEFAULTS after the file was first created.
+    new_keys = [k for k in DEFAULTS if k not in user_config]
+    if new_keys:
+        for k in new_keys:
+            print(f"Config: added missing key '{k}' with default value")
+        _save_config(config, config_path)
 
     return config
 
 
 def _save_config(config, config_path):
-    # dirname("config.json") returns "", fall back to "." to avoid
-    # makedirs("") which raises FileNotFoundError on Windows.
+    # dirname("config.json") returns ""; fall back to "." to avoid makedirs("").
     os.makedirs(os.path.dirname(config_path) or ".", exist_ok=True)
     with open(config_path, "w", encoding="utf-8") as f:
         json.dump(config, f, indent=2)

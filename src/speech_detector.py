@@ -108,17 +108,12 @@ class SpeechDetector:
             self._silence_count = 0
             if self._total_frames() >= self.max_speech_frames:
                 self._reset()
-                return None
         else:
             self._silence_count += 1
             if self._silence_count >= self.trailing_frames:
-                if self._speech_frame_count >= self.min_speech_frames:
-                    result = bytes(self._speech_buffer)
-                    self._reset()
-                    return result
-                else:
-                    self._reset()
-                    return None
+                result = bytes(self._speech_buffer) if self._speech_frame_count >= self.min_speech_frames else None
+                self._reset()
+                return result
         return None
 
     def _total_frames(self):
