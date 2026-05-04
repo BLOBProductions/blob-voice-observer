@@ -18,9 +18,9 @@ for /f "delims=" %%F in ('dir /s /b venv\Lib\site-packages\_pyinstaller_hooks_co
 )
 
 echo Running PyInstaller...
-venv\Scripts\pyinstaller ^
+venv\Scripts\python -m PyInstaller ^
     --noconfirm ^
-    --onedir ^
+    --onefile ^
     --name VoiceObserver ^
     --add-data "vosk-model-small-en-us-0.15;vosk-model-small-en-us-0.15" ^
     --collect-all vosk ^
@@ -39,17 +39,9 @@ if errorlevel 1 (
 echo.
 echo Copying config.json to dist...
 if exist config.json (
-    copy config.json dist\VoiceObserver\config.json
+    copy config.json dist\config.json
 ) else (
-    echo { "mode": "toggle", > dist\VoiceObserver\config.json
-    echo "toggle_key": "F6", >> dist\VoiceObserver\config.json
-    echo "hold_key": "caps_lock", >> dist\VoiceObserver\config.json
-    echo "debounce_ms": 300, >> dist\VoiceObserver\config.json
-    echo "vad_aggressiveness": 3, >> dist\VoiceObserver\config.json
-    echo "trailing_silence_ms": 120, >> dist\VoiceObserver\config.json
-    echo "target_window": "VALORANT", >> dist\VoiceObserver\config.json
-    echo "microphone_device_index": "0", >> dist\VoiceObserver\config.json
-    echo } >> dist\VoiceObserver\config.json
+    venv\Scripts\python -c "import json, sys; sys.path.insert(0, 'src'); from config import DEFAULTS; json.dump(DEFAULTS, open(r'dist\config.json', 'w'), indent=2)"
 )
 
 echo.
@@ -57,13 +49,13 @@ echo Copying LICENSE, NOTICE, and third-party license texts to dist...
 REM Apache 2.0 and MIT both require redistributed binaries to ship the
 REM license and attribution alongside. These files must travel with the
 REM exe, so we copy everything in third_party\ into the dist folder.
-copy LICENSE dist\VoiceObserver\LICENSE
-copy NOTICE  dist\VoiceObserver\NOTICE
-if not exist dist\VoiceObserver\third_party mkdir dist\VoiceObserver\third_party
-xcopy /Y third_party\*.txt dist\VoiceObserver\third_party\
+copy LICENSE dist\LICENSE
+copy NOTICE  dist\NOTICE
+if not exist dist\third_party mkdir dist\third_party
+xcopy /Y third_party\*.txt dist\third_party\
 
 echo.
 echo === Build complete ===
-echo Output: dist\VoiceObserver\VoiceObserver.exe
+echo Output: dist\VoiceObserver.exe
 echo.
-echo To distribute: zip the dist\VoiceObserver folder.
+echo To distribute the single executable: dist\VoiceObserver.exe
